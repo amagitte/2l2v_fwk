@@ -286,6 +286,11 @@ namespace higgs{
 	    } else if ( abs(PdgId)==11 || abs(PdgId)==12 || abs(PdgId)==13 || abs(PdgId)==14 || abs(PdgId)==15 || abs(PdgId)==16 ){
 		TLorentzVector lepP( Px, Py, Pz, E);
 		daughters.push_back( SimpleParticle_t( PdgId, lepP)); //Filling Infos
+	    } else if (  abs(PdgId)==35 ){
+		TLorentzVector Higgs( Px, Py, Pz, E);
+		printf(" \n");
+		printf("Higgs Boson Mass %10.6f \n", Higgs.M());
+		printf(" \n");
 	    }
 
 	}
@@ -303,7 +308,8 @@ namespace higgs{
         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
         mela.computeP( weightSM, false);
 
-        //TUtil::PrintCandidateSummary(mela.getCurrentCandidate());
+	printf(" \n");
+        TUtil::PrintCandidateSummary(mela.getCurrentCandidate());
         printf("Weight SM resonance computed by MELA %10.6f  \n", weightSM);
 
         //BSM reweighiting
@@ -355,7 +361,7 @@ namespace higgs{
 	printf("\n");
 	printf("After new initialization \n");
         printf("Weight NEW resonance computed by MELA %10.6f \n", weightMELA);	
-	//TUtil::PrintCandidateSummary(mela.getCurrentCandidate());
+	TUtil::PrintCandidateSummary(mela.getCurrentCandidate());
 
 	mela.resetInputEvent();
 
