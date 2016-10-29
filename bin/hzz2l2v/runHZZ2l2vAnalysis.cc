@@ -33,6 +33,8 @@
 #include "EgammaAnalysis/ElectronTools/interface/ElectronEnergyCalibratorRun2.h"  
 #include "EgammaAnalysis/ElectronTools/interface/PhotonEnergyCalibratorRun2.h" 
 
+#include "ZZMatrixElement/MELA/interface/Mela.h"
+
 #include "UserCode/llvv_fwk/interface/MacroUtils.h"
 #include "UserCode/llvv_fwk/interface/HiggsUtils.h"
 #include "UserCode/llvv_fwk/interface/SmartSelectionMonitor.h"
@@ -91,6 +93,7 @@ int main(int argc, char* argv[])
 
   bool isMC = runProcess.getParameter<bool>("isMC");
   double xsec = runProcess.getParameter<double>("xsec");
+  double resonance = runProcess.getParameter<double>("resonance");
   int mctruthmode=runProcess.getParameter<int>("mctruthmode");
   bool photonTriggerStudy = runProcess.getParameter<bool>("triggerstudy");
   TString dtag=runProcess.getParameter<std::string>("dtag");
@@ -129,6 +132,14 @@ int main(int argc, char* argv[])
   bool is2016data = (!isMC && dtag.Contains("2016")); 
   bool is2016MC = (isMC && dtag.Contains("2016")); 
   bool isMC_signal  = isMC && ( (string(dtag.Data()).find("GG" )  != string::npos) ||(string(dtag.Data()).find("VBF")  != string::npos )||dtag.Contains("RsGrav")||dtag.Contains("BulkGrav") || dtag.Contains("Radion") );
+  bool isMELA = isMC_signal && ( string(suffix.Data()).find("MELA")  != string::npos);
+ 
+  //MELA reweighting procedure 
+  if(isMELA) printf("MELA reweighting activated \n");
+  printf("MELA: initialization \n");
+  Mela mela( 13, 600, TVar::DEBUG);
+  std::vector<TString> MelaMode;
+  MelaMode.push_back("_Sigh2"); //MelaMode.push_back("_Sigh1"); MelaMode.push_back("_Bckg");
 
   //tree info
   TString dirname = runProcess.getParameter<std::string>("dirName");
@@ -192,16 +203,20 @@ int main(int argc, char* argv[])
 //    NRparams.push_back(std::make_pair<double,double>(22,-1));
 //    NRparams.push_back(std::make_pair<double,double>(25,-1));
 //    NRparams.push_back(std::make_pair<double,double>(30,-1));
-  }else if(suffix=="" && (isMC_GG || isMC_VBF)){ //consider the other points only when no suffix is being used    
-      NRparams.push_back(std::make_pair<double,double>(1.0, 0.0) ); //cp, brnew
-      NRparams.push_back(std::make_pair<double,double>(0.6, 0.0) ); //cp, brnew
-      NRparams.push_back(std::make_pair<double,double>(0.3, 0.0) ); //cp, brnew
-      NRparams.push_back(std::make_pair<double,double>(0.1, 0.0) ); //cp, brnew
+  }else if( (suffix=="" || isMELA) && (isMC_GG || isMC_VBF)){ //consider the other points only when no suffix is being used    
+      NRparams.push_back( std::make_pair<double,double>(1.0, 0.0) ); //cp, brnew
+      NRparams.push_back( std::make_pair<double,double>(0.6, 0.0) ); //cp, brnew
+      NRparams.push_back( std::make_pair<double,double>(0.3, 0.0) ); //cp, brnew
+      NRparams.push_back( std::make_pair<double,double>(0.1, 0.0) ); //cp, brnew
   }
-  if(NRparams.size()<=0)NRparams.push_back(std::make_pair<double,double>(-1.0, -1.0)); //no reweighting
+  if(NRparams.size()<=0)NRparams.push_back( std::make_pair<double,double>(-1.0, -1.0) ); //no reweighting
+
 
   std::vector<TString>    NRsuffix; 
   std::vector<double[6] > lShapeWeights(NRparams.size());   //WEIGHT for LineShape (NNLO kFactors + Interf), split in shape and scale unc with the following format:  scaleNominal, shapeNominal, scaleDown, shapeDown, scaleUp, shapeUp
+  std::vector< std::map<TString,double> > lMelaShapeWeights(NRparams.size());
+  std::map< TString, double> MelaWeigthsMap;  
+ 
   for(unsigned int nri=0;nri<NRparams.size();nri++){
      char tmp[255];
      if(      NRparams[nri].first<0 && NRparams[nri].second<0){   sprintf(tmp,"%s", "");
@@ -244,7 +259,7 @@ int main(int argc, char* argv[])
   if(isMC_GG || isMC_VBF){
       TH1D* hGen=new TH1D("hGen", "hGen", 2000, 0, 8000);
       utils::getHiggsLineshapeFromMiniAOD(urls, hGen);
-      printf("hGen integral = %f\n", hGen->Integral());
+      //printf("hGen integral = %f\n", hGen->Integral());
 
       TGraph* hLineShapeNominal= new TGraph(hGen);
       TFile* nrLineShapesFile=NULL;
@@ -253,11 +268,13 @@ int main(int argc, char* argv[])
 	gSystem->ExpandPathName(nrLineShapesFileUrl);
 	nrLineShapesFile=TFile::Open(nrLineShapesFileUrl);
       } else if( isMC_GG ){
-	TString nrLineShapesFileUrl(string(std::getenv("CMSSW_BASE"))+"/src/UserCode/llvv_fwk/data/weights/Weights_EWS_GGH_21June2016_AllInterferences.root"); 
+	//TString nrLineShapesFileUrl(string(std::getenv("CMSSW_BASE"))+"/src/UserCode/llvv_fwk/data/weights/Weights_EWS_GGH_21June2016_AllInterferences.root"); 
+	TString nrLineShapesFileUrl(string(std::getenv("CMSSW_BASE"))+"/src/UserCode/llvv_fwk/data/weights/NR_weightsRun2.root");
 	gSystem->ExpandPathName(nrLineShapesFileUrl);
 	nrLineShapesFile=TFile::Open(nrLineShapesFileUrl);
       } else if( isMC_VBF ){
-        TString nrLineShapesFileUrl(string(std::getenv("CMSSW_BASE"))+"/src/UserCode/llvv_fwk/data/weights/Weights_EWS_VBF_21June2016_AllInterferences.root"); 
+        //TString nrLineShapesFileUrl(string(std::getenv("CMSSW_BASE"))+"/src/UserCode/llvv_fwk/data/weights/Weights_EWS_VBF_21June2016_AllInterferences.root"); 
+       TString nrLineShapesFileUrl(string(std::getenv("CMSSW_BASE"))+"/src/UserCode/llvv_fwk/data/weights/NR_weightsRun2.root");
         gSystem->ExpandPathName(nrLineShapesFileUrl);
         nrLineShapesFile=TFile::Open(nrLineShapesFileUrl);
       }
@@ -350,10 +367,14 @@ int main(int argc, char* argv[])
 
   //generator level control : add an underflow entry to make sure the histo is kept
   ((TH1F*)mon.addHistogram( new TH1F( "higgsMass_raw",     ";Higgs Mass [GeV];Events", 1100,0,3300) ))->Fill(-1.0,0.0001);
-  for(unsigned int nri=0;nri<NRparams.size();nri++){ 
-    ((TH1F*)mon.addHistogram( new TH1F( "higgsMass_shape"+NRsuffix[nri] , ";Higgs Mass;Events [GeV]", 1100,0,3300) ))->Fill(-1.0,0.0001);
+  for(unsigned int nri=0;nri<NRparams.size();nri++){
+    for(unsigned int k=0;k<MelaMode.size();k++){ 
+       ((TH1F*)mon.addHistogram( new TH1F( "higgsMass_shape"+NRsuffix[nri]+TString("_")+MelaMode[k], ";Higgs Mass;Events [GeV]", 1100,0,3300) ))->Fill(-1.0,0.0001);
+    //((TH1F*)mon.addHistogram( new TH1F( "higgsMass_shape&scale"+NRsuffix[nri] , ";Higgs Mass;Events [GeV]", 1100,0,3300) ))->Fill(-1.0,0.0001);
+    }
     ((TH1F*)mon.addHistogram( new TH1F( "higgsMass_shape&scale"+NRsuffix[nri] , ";Higgs Mass;Events [GeV]", 1100,0,3300) ))->Fill(-1.0,0.0001);
   }
+
 
   mon.addHistogram( new TH1F( "wdecays",     ";W decay channel",5,0,5) );
   mon.addHistogram( new TH1F( "zdecays",     ";Z decay channel",6,0,6) );
@@ -705,6 +726,15 @@ int main(int argc, char* argv[])
      int iev=0;
      int treeStep(ev.size()/50);
      for(ev.toBegin(); !ev.atEnd(); ++ev){ iev++;
+	 /*if( iev>3) continue;
+	 std::cout << " " << std::endl;
+	 std::cout << "####################################" << std::endl;
+	 std::cout << "####################################" << std::endl;
+	 std::cout << " " << std::endl;
+	 std::cout << "Event: " << iev << std::endl;
+	 std::cout << " " << std::endl;
+	 std::cout << "####################################" << std::endl;
+	 std::cout << "####################################" << std::endl;*/
          if(iev%treeStep==0){printf(".");fflush(stdout);}
          float weight = xsecWeight;
          double puWeightUp = 1.0;
@@ -773,13 +803,34 @@ int main(int argc, char* argv[])
                   //compute weight correction for all NR shapes
                   for(unsigned int nri=0;nri<NRparams.size();nri++){ 
                      std::vector<std::pair<double, TGraph*> > shapeWgtGr = hLineShapeGrVec[NRparams[nri] ];
+		   if(!isMELA){
                      for(size_t iwgt=0; iwgt<shapeWgtGr.size(); iwgt++){ 
                         lShapeWeights[nri][iwgt*2+0]=shapeWgtGr[iwgt].first;
                         lShapeWeights[nri][iwgt*2+1]=shapeWgtGr[iwgt].second?shapeWgtGr[iwgt].second->Eval(higgs.mass()):1.0;
                      }
-                     mon.fillHisto(TString("higgsMass_shape"      )+NRsuffix[nri], "all", higgs.mass(), weight*lShapeWeights[nri][1] );
-                     mon.fillHisto(TString("higgsMass_shape&scale")+NRsuffix[nri], "all", higgs.mass(), weight*lShapeWeights[nri][1]*lShapeWeights[nri][0] );
+		    }else if(isMELA){
+			printf("\n");
+			printf("Inside MELA \n");
+			for(unsigned int k=0; k<MelaMode.size(); k++){
+				printf(" \n");
+				printf("MelaMode= %s; Cprime= %4.2f; Mass=%4f \n", MelaMode[k].Data(), NRparams[nri].first, resonance);
+				lMelaShapeWeights[nri][MelaMode[k]] = higgs::utils::weightNarrowResonnance_MELA( mela, isMC_VBF, MelaMode[k], NRparams[nri].first, resonance, ev);	
+				//lShapeWeights[nri][0] = higgs::utils::weightNarrowResonnance_MELA( mela, isMC_VBF, NRparams[nri].first, resonance, ev);
+				//lShapeWeights[nri][1] = 1.;
+				//lShapeWeights[nri][2] = 1.;
+				//lShapeWeights[nri][3] = 1.;
+				//lShapeWeights[nri][4] = 1.;
+				//lShapeWeights[nri][5] = 1.;
+			}
+		    }
 
+		    for(unsigned int k=0; k<MelaMode.size(); k++){
+			printf(" \n");
+			printf("Weight %10.6f; Weigth*MELA %10.6f \n", weight, weight*lMelaShapeWeights[nri][MelaMode[k]]);
+			printf(" \n");
+                    	mon.fillHisto(TString("higgsMass_shape"      )+NRsuffix[nri]+TString("_")+MelaMode[k], "all", higgs.mass(), weight*lMelaShapeWeights[nri][MelaMode[k]]); //*lShapeWeights[nri][1] );
+                    	mon.fillHisto(TString("higgsMass_shape&scale")+NRsuffix[nri]+TString("_")+MelaMode[k], "all", higgs.mass(), weight*lShapeWeights[nri][1]*lShapeWeights[nri][0] );
+		    }
                      //printf("NRI BW=%i --> %6.2e %6.2e %6.2e %6.2e %6.2e %6.2e\n", nri, lShapeWeights[nri][0], lShapeWeights[nri][1], lShapeWeights[nri][2], lShapeWeights[nri][3], lShapeWeights[nri][4], lShapeWeights[nri][5]);
 
                      //scale Up/Down by Nominal
@@ -928,7 +979,7 @@ int main(int argc, char* argv[])
           if(puppimetsHandle.isValid()){ puppimets = *puppimetsHandle;}
           LorentzVector puppimet = puppimets[0].p4(); 
 
-         if(isV0JetsMC){
+          if(isV0JetsMC){
             fwlite::Handle< LHEEventProduct > lheEPHandle;
             lheEPHandle.getByLabel(ev, "externalLHEProducer");
             if(lheEPHandle.isValid()){
@@ -938,7 +989,7 @@ int main(int argc, char* argv[])
             }else{
                printf("Handle to externalLHEProducer is invalid --> Can not ignore V0+Jet events from inclusive samples\n");
             }
-         }
+          }
 
 
          //MC crap for photon studies

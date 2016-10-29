@@ -2,7 +2,6 @@
 #include "TGraphErrors.h"
 #include "TLorentzVector.h"
 #include "UserCode/llvv_fwk/interface/th1fmorph.h"
-#include "ZZMatrixElement/MELA/interface/Mela.h"
 
 namespace higgs{
 
@@ -253,10 +252,13 @@ namespace higgs{
       return nrGr;
    }
 
-   float weightNarrowResonnance_MELA( bool isVBF, double CP, double heavyMass, const reco::GenParticleCollection& gen){
+   float weightNarrowResonnance_MELA( Mela& mela, bool isVBF, TString MelaMode, double CP, double heavyMass, fwlite::Event& eV){
+
+        fwlite::Handle< LHEEventProduct > lheEv;
+        lheEv.getByLabel(eV, "externalLHEProducer");
 	
 	//Fill a Map with Mass and Width SM Like
-	double heavyWidth=0; float weight=0;
+	double heavyWidth=0; float weightSM=1; float weightMELA=1; float finalweight=1;
 
 	std::map< double, double>  SM_Info;
 	SM_Info[200]=1.43;  SM_Info[300]=8.43;  SM_Info[400]=29.3; 
@@ -264,51 +266,106 @@ namespace higgs{
 	SM_Info[800]=304;   SM_Info[900]=499;   SM_Info[1000]=647;
 	SM_Info[1500]=1500; SM_Info[2000]=2000; SM_Info[2500]=2500;
 
-	std::cout << " " << std::endl;
-	std::cout << "Cprime: " << CP << "; Width: " << SM_Info[heavyMass] << "; Narrow Width: " << SM_Info[heavyMass]*CP*CP << std::endl;
-	heavyWidth = SM_Info[heavyMass]*CP*CP;	
-        TVar::VerbosityLevel verbosity = TVar::DEBUG;
-	std::cout << "MELA: initialization" << std::endl;
-        Mela mela( 13, heavyMass, verbosity); //Mela is initialized (Energy, mPOLE, verobosity) 
-        SimpleParticleCollection_t daughters, mothers; // associated;
+	heavyWidth=SM_Info[heavyMass];
+
+        SimpleParticleCollection_t daughters, mothers, associated; // associated;
 
 	//Loop on particles and fill SimpleParticleCollection_t 
-        for(unsigned int k=0; k<gen.size(); k++){
+        for(unsigned int k=0; k<lheEv->hepeup().IDUP.size(); k++){
 
-            if( !gen[k].isHardProcess()) continue;
-            if( (gen[k].pdgId()<7 || gen[k].pdgId()==21) && gen[k].status() == 21 ){
-                TLorentzVector partons( gen[k].px(), gen[k].py(), gen[k].pz(), gen[k].energy());
-		mothers.push_back( SimpleParticle_t( gen[k].pdgId(), partons)); //Filling Infos
-	    } else if( abs(gen[k].pdgId()) == 11 || abs(gen[k].pdgId()) == 12 || abs(gen[k].pdgId()) == 13 || abs(gen[k].pdgId()) == 14 || abs(gen[k].pdgId()) == 15 || abs(gen[k].pdgId()) == 16 ){
-		TLorentzVector lepP( gen[k].px(), gen[k].py(), gen[k].pz(), gen[k].energy());
-		daughters.push_back( SimpleParticle_t( gen[k].pdgId(), lepP)); //Filling Infos
+	    int PdgId=lheEv->hepeup().IDUP.at(k); int Status=lheEv->hepeup().ISTUP.at(k);
+	    double Px=lheEv->hepeup().PUP.at(k)[0]; double Py=lheEv->hepeup().PUP.at(k)[1]; 
+	    double Pz=lheEv->hepeup().PUP.at(k)[2]; double  E=lheEv->hepeup().PUP.at(k)[3];
+            if( (abs(PdgId)<7 || PdgId==21) && Status<0 ){
+                TLorentzVector partons( Px, Py, Pz, E);
+		if (abs(PdgId)<7 && isVBF) mothers.push_back( SimpleParticle_t( PdgId, partons)); //Filling Infos
+                else mothers.push_back(SimpleParticle_t(0, partons)); //Else fill gluons as 0 (unknown parton) in case the initial state is qg in ggF, or qg or gg in VBF
+	    } else if ( (abs(PdgId)<7 || PdgId==21) && Status>0){
+                TLorentzVector extra_partons( Px, Py, Pz, E);
+                associated.push_back( SimpleParticle_t( PdgId, extra_partons));
+	    } else if ( abs(PdgId)==11 || abs(PdgId)==12 || abs(PdgId)==13 || abs(PdgId)==14 || abs(PdgId)==15 || abs(PdgId)==16 ){
+		TLorentzVector lepP( Px, Py, Pz, E);
+		daughters.push_back( SimpleParticle_t( PdgId, lepP)); //Filling Infos
 	    }
 
 	}
 	
-	std::cout <<"MELA: setInputs" << std::endl;
         mela.setCandidateDecayMode(TVar::CandidateDecay_ZZ); //Mela Candidate mode initialized
-	mela.setInputEvent(&daughters, 0, &mothers, true); 
-	
-	if(!isVBF){
-	    //TVar::bkgZZ=to produce only Bckg, TVar::HSMHiggs=to produce only Signal, TVar::bkgZZ_SMHiggs=to produce both
-	    mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG); 
-	}else if(isVBF){
-	    mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF);
-	}
-	
-	std::cout << "MELA: set Higgs Mass" << std::endl;
-	mela.setMelaHiggsMassWidth(-1,0,0);
-        mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0); //First resonance Initialization, SM Higgs
-        mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 1); //Second resonace Initialization, Heavy resonance 
-	mela.computeP( weight, false);
-	
-	std::cout << "MELA: compute weights" << std::endl;
-	TUtil::PrintCandidateSummary(mela.getCurrentCandidate()); 
-        return weight;
-	std::cout << " " << std::endl;
+	if(isVBF){ 
+		mela.setInputEvent(&daughters, &associated, &mothers, true);
+		mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF);
+	}else{ 
+		mela.setInputEvent(&daughters, 0, &mothers, true);
+		mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
+	} 
+		
+	mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses	
+        mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
+        mela.computeP( weightSM, false);
+
+        //TUtil::PrintCandidateSummary(mela.getCurrentCandidate());
+        printf("Weight SM resonance computed by MELA %10.6f  \n", weightSM);
+
+        //BSM reweighiting
+        mela.resetInputEvent();
+        printf("Weight SM resonance computed by MELA %10.6f  \n", weightSM); 
+        //TUtil::PrintCandidateSummary(mela.getCurrentCandidate());
+
+	heavyWidth=heavyWidth*CP*CP;
+
+        if(isVBF){
+                mela.setInputEvent(&daughters, &associated, &mothers, true);
+		//Different way to initialize MELA starting from MELAMODE 
+                if(MelaMode.Contains("Bckg")){
+			printf("Computation of Bckg Weights \n"); 
+			mela.setProcess( TVar::bkgZZ, TVar::MCFM, TVar::JJVBF);
+		} else if(MelaMode.Contains("Sigh2")){
+			printf("Computation of Sigh2 \n");
+                        mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF);
+        		mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+        		mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);	
+		} else if(MelaMode.Contains("Sigh1")){
+			printf("Computation of Sigh1 \n");
+                        mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF);
+                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
+		}
+        }else{
+                mela.setInputEvent(&daughters, 0, &mothers, true);
+		printf("\n");
+		//Different way to inizialize MELA starting from MELAMODE
+		if(MelaMode.Contains("Bckg")){
+                        printf("Computation of Bckg Weights \n");
+                	mela.setProcess( TVar::bkgZZ, TVar::MCFM, TVar::ZZGG);
+		} else if(MelaMode.Contains("Sigh2")){
+                        printf("Computation of Sigh2 \n");
+                        mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
+                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 1);
+		} else if(MelaMode.Contains("Sigh1")){
+                        printf("Computation of Sigh1 \n");
+                        mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
+                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        mela.setMelaHiggsMassWidth( 125, 4.07e-3, 1);
+		}
+		printf("\n");
+        }
+		
+	mela.computeP( weightMELA, false);
+	printf("\n");
+	printf("After new initialization \n");
+        printf("Weight NEW resonance computed by MELA %10.6f \n", weightMELA);	
+	//TUtil::PrintCandidateSummary(mela.getCurrentCandidate());
 
 	mela.resetInputEvent();
+
+        finalweight=weightMELA/weightSM;
+	printf("\n");
+        printf("FINAL Weight computed by MELA %10.6f \n", finalweight);
+	printf("\n");
+
+        return finalweight;
+
    }
 
 
