@@ -99,6 +99,8 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
    gStyle->SetTitleYOffset(1.45);
    gStyle->SetPalette(1);
    gStyle->SetNdivisions(505);
+
+  
  
   //get the limits from the tree
   TFile* file = TFile::Open(inputs);
@@ -118,18 +120,24 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
   TGraph* ExpLimitp2 = getLimitGraph(tree,0.975);
   file->Close();
 
+  
   //get the pValue
   inputs = inputs.ReplaceAll("/LimitTree.root", "/PValueTree.root");
   file = TFile::Open(inputs);
+  
   printf("Looping on %s\n",inputs.Data());
   if(!file) return;
   if(file->IsZombie()) return;
+  
   tree = (TTree*)file->Get("limit");
+  
   tree->GetBranch("limit"           )->SetAddress(&Tlimit   );
+  
   TGraph* pValue     = getLimitGraph(tree,-1);
+  
   file->Close();
 
-
+  
   //make TH Cross-sections
    string suffix = outputDir;
    TGraph* THXSec   = Hxswg::utils::getXSec(outputDir); 
@@ -148,6 +156,7 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
   if(outputDir.find("GGF")!=std::string::npos)prod="gg";
   if(outputDir.find("VBF")!=std::string::npos)prod="qq";
 
+  
   strengthLimit = false;
   if(prod=="pp")strengthLimit=true;
  
@@ -160,6 +169,7 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
   scaleGraph(ExpLimitp2, 1000); //pb to fb
 
 
+  
   //scal eTH cross-section and limits according to scale factor 
   //this only apply to NarrowResonnance case
   if(strengthLimit){
@@ -175,18 +185,18 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
 
   //limits in terms of signal strength
   TCanvas* c = new TCanvas("c", "c",800,800);
-  TH1F* framework = new TH1F("Graph","Graph",1,strengthLimit?190:190,1510);
+  TH1F* framework = new TH1F("Graph","Graph",1,strengthLimit?290:290,1010);
   framework->SetStats(false);
   framework->SetTitle("");
   framework->GetXaxis()->SetTitle("M_{H} [GeV]");
   framework->GetYaxis()->SetTitleOffset(1.70);
   if(strengthLimit){
   framework->GetYaxis()->SetTitle("#mu = #sigma_{95%} / #sigma_{th}");
-  framework->GetYaxis()->SetRangeUser(1E-2,1E3);
+  framework->GetYaxis()->SetRangeUser(1E-4,1E3);
   c->SetLogy(true);
   }else{
   framework->GetYaxis()->SetTitle((string("#sigma_{95%} (") + prod +" #rightarrow H #rightarrow ZZ) (fb)").c_str());
-  framework->GetYaxis()->SetRangeUser(1E1,1E5);
+  framework->GetYaxis()->SetRangeUser(1,1E7);
   c->SetLogy(true);
   }
   framework->GetXaxis()->SetLabelOffset(0.007);
@@ -202,6 +212,7 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
   framework->GetYaxis()->SetTitleSize(0.035);
   framework->Draw();
 
+  
   TGraph* TGObsLimit   = ObsLimit;  TGObsLimit->SetLineWidth(2);
   TGraph* TGExpLimit   = ExpLimit;  TGExpLimit->SetLineWidth(2); TGExpLimit->SetLineStyle(2);
   TCutG* TGExpLimit1S  = GetErrorBand("1S", ExpLimitm1, ExpLimitp1);  
@@ -215,6 +226,7 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
   if(!blind) TGObsLimit->Draw("same CP");
   TGExpLimit->Draw("same C");
 
+  
   if(strengthLimit){
      TLine* SMLine = new TLine(framework->GetXaxis()->GetXmin(),1.0,framework->GetXaxis()->GetXmax(),1.0);
      SMLine->SetLineWidth(2); SMLine->SetLineStyle(1); SMLine->SetLineColor(4);      
@@ -225,6 +237,7 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
 
   utils::root::DrawPreliminary(luminosity, energy, c);
 
+  
   TLegend* LEG = new TLegend(0.55,0.75,0.85,0.95);
   LEG->SetHeader("");
   LEG->SetFillColor(0);
@@ -242,6 +255,7 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
   c->SaveAs((outputDir+"Limit.C").c_str());
   c->SaveAs((outputDir+"Limit.pdf").c_str()); 
 
+  
   //save a summary of the limits
   FILE* pFileSum = fopen((outputDir+"LimitSummary").c_str(),"w");
   for(int i=0;i<TGExpLimit->GetN();i++){

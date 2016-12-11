@@ -137,7 +137,7 @@ def getFileList(procData,DefaultNFilesPerJob):
             if IsOnLocalTier:
                if  (hostname.find("iihe.ac.be")!=-1): list[i] = "dcap://maite.iihe.ac.be/pnfs/iihe/cms/ph/sc4"+list[i]
                elif(hostname.find("ucl.ac.be" )!=-1): list[i] = "/storage/data/cms"+list[i]
-               else:                                  list[i] = "root://eoscms//eos/cms"+list[i]            
+               else:                                  list[i] = "root://eoscms//eos/cms"+list[i]    
             else:
                list[i] = "root://cms-xrd-global.cern.ch/"+list[i] #works worldwide
               #list[i] = "root://xrootd-cms.infn.it/"+list[i]    #optimal for EU side
@@ -263,6 +263,7 @@ for procBlock in procList :
         isdatadriven=getByLabelFromKeyword(proc,opt.onlykeyword,'isdatadriven',False)       
         mctruthmode=getByLabelFromKeyword(proc,opt.onlykeyword,'mctruthmode',0)
         procSuffix=getByLabelFromKeyword(proc,opt.onlykeyword,'suffix' ,"")
+	resonance=getByLabelFromKeyword(proc,opt.onlykeyword,'resonance',1);
         data = proc['data']
 
         for procData in data : 
@@ -295,8 +296,8 @@ for procBlock in procList :
                    eventsFile = FileList[s]
                    eventsFile = eventsFile.replace('?svcClass=default', '')
                    if(doCacheInputs and isLocalSample):
-                      result = CacheInputs(eventsFile)
-                      eventsFile = result[0]
+                      result = CacheInputs(eventsFile) 
+                      #eventsFile = result[0]
                       if("IIHE" in localTier): LaunchOnCondor.Jobs_InitCmds.append('if [ -d $TMPDIR ] ; then cd $TMPDIR ; fi;\n')
                       LaunchOnCondor.Jobs_InitCmds.append(result[1])
                       LaunchOnCondor.Jobs_FinalCmds.append(result[2])
@@ -308,6 +309,7 @@ for procBlock in procList :
             	   sedcmd += 's%@outfile%' + prodfilepath+'.root%;'
             	   sedcmd += 's%@isMC%' + str(not (isdata or isdatadriven) )+'%;'
             	   sedcmd += 's%@mctruthmode%'+str(mctruthmode)+'%;'
+		   sedcmd += 's%@resonance%'+str(resonance)+'%;'
             	   sedcmd += 's%@xsec%'+str(xsec)+'%;'
                    sedcmd += 's%@cprime%'+str(getByLabel(procData,'cprime',-1))+'%;'
                    sedcmd += 's%@brnew%' +str(getByLabel(procData,'brnew' ,-1))+'%;'
@@ -315,7 +317,6 @@ for procBlock in procList :
                    sedcmd += 's%@lumiMask%"' + os.path.expandvars(getByLabel(procData,'lumiMask',''))+'"%;'
               	   if(opt.params.find('@useMVA')<0) :          opt.params = '@useMVA=False ' + opt.params
                    if(opt.params.find('@weightsFile')<0) :     opt.params = '@weightsFile= ' + opt.params
-                   if(opt.params.find('@puWeightsFile')<0) :     opt.params = '@puWeightsFile= ' + opt.params
                    if(opt.params.find('@evStart')<0) :         opt.params = '@evStart=0 '    + opt.params
                    if(opt.params.find('@evEnd')<0) :           opt.params = '@evEnd=-1 '     + opt.params
             	   if(opt.params.find('@saveSummaryTree')<0) : opt.params = '@saveSummaryTree=False ' + opt.params

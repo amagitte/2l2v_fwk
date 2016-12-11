@@ -11,9 +11,16 @@
 #include "TFile.h"
 #include "TMath.h"
 
+#include "DataFormats/FWLite/interface/Handle.h"
+#include "DataFormats/FWLite/interface/Event.h"
+
 #include "Math/LorentzVector.h"
 #include "DataFormats/Math/interface/deltaR.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
+
+#include "ZZMatrixElement/MELA/interface/Mela.h"
 
 typedef ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double> > LorentzVector;
 
@@ -53,7 +60,11 @@ namespace higgs{
     //reweight the resonance
     TGraph* weightNarrowResonnance(bool isVBF, double mass, double Cprime, double BRnew, TFile *nrLineShapesFile, double& Norm, TString pf);
     TGraph* weightGGZZContinuum(TFile *nrLineShapesFile, double& Norm, TString pf);
-  
+
+    float weightNarrowResonnance_MELA( Mela& mela, bool isVBF, TString MelaMode, double Cprime, double resonance, fwlite::Event& eV);  
+    float ComputeInterfWeight( Mela& mela, bool isVBF, TString MelaMode, double width, double mass, SimpleParticleCollection_t& daughters, SimpleParticleCollection_t& associated, SimpleParticleCollection_t& mothers);
+    //float ComputeAllWeight( Mela& mela, bool isVBF, TString MelaMode, double kFactor, double width, double mass, SimpleParticleCollection_t& daughters, SimpleParticleCollection_t& associated, SimpleParticleCollection_t& mothers);
+    double Get_NNLO_kFactors( double mass);
 
     //reweight to H125 interference
     double weightToH125Interference(double mass,double width,TFile *intFile,TString var); 

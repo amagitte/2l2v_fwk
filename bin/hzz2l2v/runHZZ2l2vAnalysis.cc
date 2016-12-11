@@ -33,6 +33,8 @@
 #include "EgammaAnalysis/ElectronTools/interface/ElectronEnergyCalibratorRun2.h"  
 #include "EgammaAnalysis/ElectronTools/interface/PhotonEnergyCalibratorRun2.h" 
 
+#include "ZZMatrixElement/MELA/interface/Mela.h"
+
 #include "UserCode/llvv_fwk/interface/MacroUtils.h"
 #include "UserCode/llvv_fwk/interface/HiggsUtils.h"
 #include "UserCode/llvv_fwk/interface/SmartSelectionMonitor.h"
@@ -92,6 +94,7 @@ int main(int argc, char* argv[])
 
   bool isMC = runProcess.getParameter<bool>("isMC");
   double xsec = runProcess.getParameter<double>("xsec");
+  double resonance = runProcess.getParameter<double>("resonance");
   int mctruthmode=runProcess.getParameter<int>("mctruthmode");
   bool photonTriggerStudy = runProcess.getParameter<bool>("triggerstudy");
   TString dtag=runProcess.getParameter<std::string>("dtag");
@@ -109,8 +112,8 @@ int main(int argc, char* argv[])
       if(dtag.Contains("DoubleMu"))    filterOnlyMUMU=true;
       if(dtag.Contains("MuEG"))        filterOnlyEMU=true;
       if(dtag.Contains("SinglePhoton"))filterOnlyPhoton=true;     
-      if(dtag.Contains("SingleMu"))    filterOnlyMU=true;      
-      if(dtag.Contains("SingleElectron"))filterOnlyE=true;      
+      if(dtag.Contains("SingleMu"))    filterOnlyE=true;      
+      if(dtag.Contains("SingleElectron"))filterOnlyMU=true;      
   }
   bool isV0JetsMC(false);//isMC && (dtag.Contains("DYJetsToLL_50toInf") || dtag.Contains("_WJets")));  #FIXME should be reactivated as soon as we have exclusive jet samples
   bool isWGmc(isMC && dtag.Contains("WG"));
@@ -130,9 +133,41 @@ int main(int argc, char* argv[])
   bool is2016data = (!isMC && dtag.Contains("2016")); 
   bool is2016MC = (isMC && dtag.Contains("2016")); 
   bool isMC_signal  = isMC && ( (string(dtag.Data()).find("GG" )  != string::npos) ||(string(dtag.Data()).find("VBF")  != string::npos )||dtag.Contains("RsGrav")||dtag.Contains("BulkGrav") || dtag.Contains("Radion") );
+  bool isMELA = isMC_signal && ( dtag.Contains("MELA") );
+
+  //MELA reweighting procedure
+  if(isMELA) printf("MELA reweighting activated \n");
+  printf("MELA: initialization \n");
+  Mela mela( 13, 600, TVar::INFO);
+  string MelaMode;
+
+  //Initialize Mela mode
+  //Sigh2 -> weights for heavy resonance
+  //Sigh1 -> weights for light resonance
+  //Conti -> weights for continuum only
+  //Bckg  -> weights for continuum + light resonance
+  //All   -> weights for heavy resonance + light resonance + continuum + their interferance
+  //Interf_h2Bckg -> weigts for interferance between heavy resonance and continuum
+  //Interf_h2h1   -> weigts for interferance between light resonance and heavy resonance
+  //Interf_h1Bckg -> weigts for interferance between light resonance and continuum
+  //Interf_Full    -> weight for interferance between all the three contributions
+  //Interf_h2h1_h2Bckg -> weight for interferance between heavy higgs and light higgs, heavy higgs and continuum
+
+  if( dtag.Contains("SOnly") ){ MelaMode = "Sigh2"; }
+  else if( dtag.Contains("BOnly") ){ MelaMode = "Bckg"; }
+  //else if( dtag.Contains("SandBandInterf") ){ MelaMode = "Interf_h2h1_h2Continuum"; }
+  else if( dtag.Contains("SandBandInterf") ){ MelaMode = "All"; }
+
+  else if( dtag.Contains("Sigh1") ){ MelaMode = "Sigh1"; }
+  else if( dtag.Contains("ContinuumOnly") ){ MelaMode = "Continuum"; }
+  else if( dtag.Contains("Interf") && dtag.Contains("h2") && dtag.Contains("Continuum") ){ MelaMode = "Interf_h2Continuum"; }
+  else if( dtag.Contains("Interf") && dtag.Contains("h2") && dtag.Contains("h1") ){ MelaMode = "Interf_h2h1"; }
+  else if( dtag.Contains("Interf") && dtag.Contains("Continuum") && dtag.Contains("h1") ){ MelaMode = "Interf_h1Continuum"; }
+  else if( dtag.Contains("Interf") && dtag.Contains("Full") ){ MelaMode = "Interf_Full"; }
 
   //tree info
   TString dirname = runProcess.getParameter<std::string>("dirName");
+
 
   //systematics
   bool runSystematics                        = runProcess.getParameter<bool>("runSystematics");
@@ -171,14 +206,14 @@ int main(int argc, char* argv[])
   std::vector<std::string> gammaPtWeightsFiles =  runProcess.getParameter<std::vector<std::string> >("weightsFile");      
   GammaWeightsHandler* gammaWgtHandler = (gammaPtWeightsFiles.size()>0 && gammaPtWeightsFiles[0]!="") ? new GammaWeightsHandler(runProcess,"",true) : NULL;
 
-  // Apply pu corrections to photon sample, to match the pu distribution in the dilepton one
-  std::vector<std::string> puWeightsFilePath = runProcess.getParameter<std::vector<std::string> >("puWeightsFile"); 
+  // Apply rho corrections to photon sample, to match the rho distribution in the dilepton one
+  std::vector<std::string> rhoWeightsFilePath = runProcess.getParameter<std::vector<std::string> >("rhoWeightsFile"); 
 
-  bool doPUCorrections=true;    
-  if ( puWeightsFilePath.size()==0) {doPUCorrections=false; }     
-  else if ( puWeightsFilePath[0]=="") {doPUCorrections=false; }
+  bool doRhoCorrections=true;    
+  if ( rhoWeightsFilePath.size()==0) {doRhoCorrections=false; }     
+  else if ( rhoWeightsFilePath[0]=="") {doRhoCorrections=false; }
 
-  TFile* puWeightsFile=NULL;  
+  TFile* rhoWeightsFile=NULL;  
 
   if(gammaWgtHandler)printf("gammaWgtHandler is activated\n");
 
@@ -203,16 +238,19 @@ int main(int argc, char* argv[])
 //    NRparams.push_back(std::make_pair<double,double>(22,-1));
 //    NRparams.push_back(std::make_pair<double,double>(25,-1));
 //    NRparams.push_back(std::make_pair<double,double>(30,-1));
-  }else if(suffix=="" && (isMC_GG || isMC_VBF)){ //consider the other points only when no suffix is being used    
-      NRparams.push_back(std::make_pair<double,double>(1.0, 0.0) ); //cp, brnew
-      NRparams.push_back(std::make_pair<double,double>(0.6, 0.0) ); //cp, brnew
-      NRparams.push_back(std::make_pair<double,double>(0.3, 0.0) ); //cp, brnew
-      NRparams.push_back(std::make_pair<double,double>(0.1, 0.0) ); //cp, brnew
-  }
+  }else if( (suffix=="" || isMELA) && (isMC_GG || isMC_VBF)){ //consider the other points only when no suffix is being used    
+      NRparams.push_back( std::make_pair<double,double>(1.0, 0.0) ); //cp, brnew
+      NRparams.push_back( std::make_pair<double,double>(0.6, 0.0) ); //cp, brnew
+      NRparams.push_back( std::make_pair<double,double>(0.3, 0.0) ); //cp, brnew
+      NRparams.push_back( std::make_pair<double,double>(0.1, 0.0) ); //cp, brnew
+  } 
   if(NRparams.size()<=0)NRparams.push_back(std::make_pair<double,double>(-1.0, -1.0)); //no reweighting
 
   std::vector<TString>    NRsuffix; 
   std::vector<double[6] > lShapeWeights(NRparams.size());   //WEIGHT for LineShape (NNLO kFactors + Interf), split in shape and scale unc with the following format:  scaleNominal, shapeNominal, scaleDown, shapeDown, scaleUp, shapeUp
+  std::vector< std::map<TString,double> > lMelaShapeWeights(NRparams.size());
+  std::map< TString, double> MelaWeigthsMap;
+
   for(unsigned int nri=0;nri<NRparams.size();nri++){
      char tmp[255];
      if(      NRparams[nri].first<0 && NRparams[nri].second<0){   sprintf(tmp,"%s", "");
@@ -255,7 +293,7 @@ int main(int argc, char* argv[])
   if(isMC_GG || isMC_VBF){
       TH1D* hGen=new TH1D("hGen", "hGen", 2000, 0, 8000);
       utils::getHiggsLineshapeFromMiniAOD(urls, hGen);
-      printf("hGen integral = %f\n", hGen->Integral());
+      //printf("hGen integral = %f\n", hGen->Integral());
 
       TGraph* hLineShapeNominal= new TGraph(hGen);
       TFile* nrLineShapesFile=NULL;
@@ -279,6 +317,7 @@ int main(int argc, char* argv[])
 
       //loop over possible scenarios: SM or BSM
       for(size_t nri=0; nri<NRparams.size(); nri++){
+
          //recompute weights depending on the scenario (SM or BSM)
          TGraph* shapeWgtsGr      = new TGraph; shapeWgtsGr->SetName("shapeWgts_"+ NRsuffix[nri]);          float shapeNorm(0);     double signalNorm(1.0);
          TGraph* shapeWgts_upGr   = new TGraph; shapeWgts_upGr->SetName("shapeWgtsUp_"+ NRsuffix[nri]);     float shapeUpNorm(0);   double signalUpNorm(1.0);
@@ -335,7 +374,7 @@ int main(int argc, char* argv[])
      	    }
 
             //fix possible normalization issues
-            printf("C'=%6.2f  BRNew=%6.2f shapeNorm = %f Up=%f Down=%f  signalNorm=%f Up=%f Down=%f\n", NRparams[nri].first, NRparams[nri].second, shapeNorm, shapeUpNorm, shapeDownNorm, signalNorm, signalUpNorm, signalDownNorm);
+            //printf("C'=%6.2f  BRNew=%6.2f shapeNorm = %f Up=%f Down=%f  signalNorm=%f Up=%f Down=%f\n", NRparams[nri].first, NRparams[nri].second, shapeNorm, shapeUpNorm, shapeDownNorm, signalNorm, signalUpNorm, signalDownNorm);
  	    for(Int_t ip=0; ip<shapeWgtsGr->GetN(); ip++){
   	         Double_t x,y;
 	         shapeWgtsGr->GetPoint(ip,x,y);
@@ -363,7 +402,8 @@ int main(int argc, char* argv[])
 
   //generator level control : add an underflow entry to make sure the histo is kept
   ((TH1F*)mon.addHistogram( new TH1F( "higgsMass_raw",     ";Higgs Mass [GeV];Events", 1100,0,3300) ))->Fill(-1.0,0.0001);
-  for(unsigned int nri=0;nri<NRparams.size();nri++){ 
+  for(unsigned int nri=0;nri<NRparams.size();nri++){
+    ((TH1F*)mon.addHistogram( new TH1F( "MELA_weights"+NRsuffix[nri] , ";Wgt; Events", 10000, 0, 100)))->Fill(-1.0,0.0001); 
     ((TH1F*)mon.addHistogram( new TH1F( "higgsMass_shape"+NRsuffix[nri] , ";Higgs Mass;Events [GeV]", 1100,0,3300) ))->Fill(-1.0,0.0001);
     ((TH1F*)mon.addHistogram( new TH1F( "higgsMass_shape&scale"+NRsuffix[nri] , ";Higgs Mass;Events [GeV]", 1100,0,3300) ))->Fill(-1.0,0.0001);
   }
@@ -395,18 +435,9 @@ int main(int argc, char* argv[])
   h->GetXaxis()->SetBinLabel(6,"#gamma"); 
 
   //pu control
-  mon.addHistogram( new TH1F( "nvtx",";Vertices;Events",81, -0.5, 80.5)); //50,0,50) ); 
-  mon.addHistogram( new TH1F( "nvtxraw",";Vertices;Events",81, -0.5, 80.5 )); //50,0,50) ); 
-  mon.addHistogram( new TH1F( "rho",";#rho;Events",100,0,50) ); 
-
-  Double_t ZPtBins[] = {0,30,36,50,75,90,120,165,3000}; 
-  Int_t NZPtBins = sizeof(ZPtBins)/sizeof(ZPtBins[0]) - 1; 
-  Double_t RhoBins[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100};
-
-  Int_t NRhoBins = sizeof(RhoBins)/sizeof(RhoBins[0]) - 1; 
-
-  TH2F *hnvtx=(TH2F *) mon.addHistogram( new TH2F ("zpt_vs_nvtx",";zpt;#vertices",NZPtBins, ZPtBins, NRhoBins, RhoBins) ); 
-  TH2F *hrho=(TH2F *) mon.addHistogram( new TH2F ("zpt_vs_rho",";zpt;rho", NZPtBins, ZPtBins, NRhoBins, RhoBins) ); 
+  mon.addHistogram( new TH1F( "nvtx",";Vertices;Events",50,0,50) ); 
+  mon.addHistogram( new TH1F( "nvtxraw",";Vertices;Events",50,0,50) ); 
+  mon.addHistogram( new TH1F( "rho",";#rho;Events",50,0,25) ); 
 
   // photon control
   mon.addHistogram(new TH1F("npho",   ";Number of Photons;Events", 20, 0, 20) ); 
@@ -415,9 +446,7 @@ int main(int argc, char* argv[])
   mon.addHistogram(new TH1F("photonpt", ";Photon pT [GeV];Events", 500, 0, 1000) ); 
   mon.addHistogram(new TH1F("phopt", ";Photon pT [GeV];Events", 500, 0, 1000) ); 
   mon.addHistogram(new TH1F("phoeta", ";Photon pseudo-rapidity;Events", 50, 0, 5) );
-  mon.addHistogram(new TH1F("bosonnvtx", ";Photon #vertices;Events", 81, -0.5, 80.5) );
-  mon.addHistogram(new TH1F("bosonrho", ";Photon rho;Events",100,0,50) ); 
-
+  mon.addHistogram(new TH1F("bosonnvtx", ";Photon #eta;Events", 50, 0, 50) );
   mon.addHistogram(new TH1F("bosoneta", ";Photon #eta;Events", 100, -5, 5) );
   mon.addHistogram(new TH1F("bosonphi", ";Photon #phi;Events", 80, -4, 4) );
   mon.addHistogram(new TH1F("bosonphiHG", ";Photon #phi;Events", 800, -4, 4) );
@@ -545,7 +574,6 @@ int main(int argc, char* argv[])
   
   mon.addHistogram( new TH1F( "mzz",   ";M_{ZZ} [GeV];Events / GeV", 150, 0, 1500) ); //The binning is the same than the one for the corrections.
 
-
   //
   // HISTOGRAMS FOR OPTIMIZATION and STATISTICAL ANALYSIS
   //
@@ -564,10 +592,9 @@ int main(int argc, char* argv[])
   for(unsigned int index=0;index<optim_Cuts1_met.size();index++){ Hoptim_cuts    ->Fill(index, 0.0, optim_Cuts1_met[index]);  }
   for(size_t ivar=0; ivar<nvarsToInclude; ivar++){
       for(unsigned int nri=0;nri<NRparams.size();nri++){ 
-	mon.addHistogram( new TH2F (TString("mt_shapes")+NRsuffix[nri]+varNames[ivar],";cut index;Transverse mass [GeV];Events",optim_Cuts1_met.size(),0,optim_Cuts1_met.size(), 160,150,1750) );     
-	mon.addHistogram( new TH2F (TString("met_shapes")+NRsuffix[nri]+varNames[ivar],";cut index;Missing transverse energy [GeV];Events",optim_Cuts1_met.size(),0,optim_Cuts1_met.size(),100 ,0,500) );     
+	mon.addHistogram( new TH2F (TString("mt_shapes")+NRsuffix[nri]+varNames[ivar],";cut index;Transverse mass [GeV];Events",optim_Cuts1_met.size(),0,optim_Cuts1_met.size(), 285, 150, 3000) );     
+	mon.addHistogram( new TH2F (TString("met_shapes")+NRsuffix[nri]+varNames[ivar],";cut index;Missing transverse energy [GeV];Events",optim_Cuts1_met.size(),0,optim_Cuts1_met.size(), 300, 0, 1500) );     
 	TH2F *h=(TH2F *) mon.addHistogram( new TH2F ("mt_shapes_NRBctrl"+NRsuffix[nri]+varNames[ivar],";cut index;Selection region;Events",optim_Cuts1_met.size(),0,optim_Cuts1_met.size(),6,0,6) );
-
 	h->GetYaxis()->SetBinLabel(1,"M_{in}^{ll}/=0 b-tags");
 	h->GetYaxis()->SetBinLabel(2,"M_{out}^{ll}/=0 b-tags");
 	h->GetYaxis()->SetBinLabel(3,"M_{out+}^{ll}/=0 b-tags");
@@ -664,32 +691,18 @@ int main(int argc, char* argv[])
   float beff(0.68), sfb(0.99), sfbunc(0.015);
   float leff(0.13), sfl(1.05), sflunc(0.12);
 
-  //double btagLoose = 0.605; //https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation74X FIXME, I sent an email to Petra to know more (Hugo)
-  double btagLoose = 0.460;  //80X recommendation Loose
-
-  // setup calibration readers 74X
-  //BTagCalibration btagCalib("CSVv2", string(std::getenv("CMSSW_BASE"))+"/src/UserCode/llvv_fwk/data/weights/btagSF_CSVv2.csv");
-  //BTagCalibrationReader btagCal   (&btagCalib, BTagEntry::OP_LOOSE, "mujets", "central");  // calibration instance, operating point, measurement type, systematics type
-  //BTagCalibrationReader btagCalUp (&btagCalib, BTagEntry::OP_LOOSE, "mujets", "up"     );  // sys up
-  //BTagCalibrationReader btagCalDn (&btagCalib, BTagEntry::OP_LOOSE, "mujets", "down"   );  // sys down
-  //BTagCalibrationReader btagCalL  (&btagCalib, BTagEntry::OP_LOOSE, "comb", "central");  // calibration instance, operating point, measurement type, systematics type
-  //BTagCalibrationReader btagCalLUp(&btagCalib, BTagEntry::OP_LOOSE, "comb", "up"     );  // sys up
-  //BTagCalibrationReader btagCalLDn(&btagCalib, BTagEntry::OP_LOOSE, "comb", "down"   );  // sys down
-
-  // setup calibration readers 80X
-  BTagCalibration btagCalib("CSVv2", string(std::getenv("CMSSW_BASE"))+"/src/UserCode/llvv_fwk/data/weights/CSVv2_ichep.csv");
-
-  BTagCalibrationReader80X btagCal80X   (BTagEntry::OP_LOOSE, "central", {"up", "down"});
-  btagCal80X.load(btagCalib, BTagEntry::FLAV_B, "comb");
-  btagCal80X.load(btagCalib, BTagEntry::FLAV_C, "comb");
-  btagCal80X.load(btagCalib, BTagEntry::FLAV_UDSG, "incl");
-
+  double btagLoose = 0.605; //https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation74X FIXME, I sent an email to Petra to know more (Hugo)
+  // setup calibration readers
+  BTagCalibration btagCalib("CSVv2", string(std::getenv("CMSSW_BASE"))+"/src/UserCode/llvv_fwk/data/weights/btagSF_CSVv2.csv");
+  BTagCalibrationReader btagCal   (&btagCalib, BTagEntry::OP_LOOSE, "mujets", "central");  // calibration instance, operating point, measurement type, systematics type
+  BTagCalibrationReader btagCalUp (&btagCalib, BTagEntry::OP_LOOSE, "mujets", "up"     );  // sys up
+  BTagCalibrationReader btagCalDn (&btagCalib, BTagEntry::OP_LOOSE, "mujets", "down"   );  // sys down
+  BTagCalibrationReader btagCalL  (&btagCalib, BTagEntry::OP_LOOSE, "comb", "central");  // calibration instance, operating point, measurement type, systematics type
+  BTagCalibrationReader btagCalLUp(&btagCalib, BTagEntry::OP_LOOSE, "comb", "up"     );  // sys up
+  BTagCalibrationReader btagCalLDn(&btagCalib, BTagEntry::OP_LOOSE, "comb", "down"   );  // sys down
 
   // from Btag SF and eff from https://indico.cern.ch/event/437675/#preview:1629681
-  // beff = 0.747; sfb = 0.899; //for Loose WP  //sfb is not actually used as it's taken from btagCal
-  //
-  beff = 0.836; sfb = 0.920; //for Loose WP  //sfb is from page 7 https://indico.cern.ch/event/557018/contributions/2246312/attachments/1310986/1961665/csvSF_rwt_July18th_2016.pdf 
-  leff = 0.139;  
+  beff = 0.747; sfb = 0.899; //for Loose WP  //sfb is not actually used as it's taken from btagCal
 
   //pileup weighting
   edm::LumiReWeighting* LumiWeights = NULL;
@@ -800,31 +813,44 @@ int main(int argc, char* argv[])
                 if(mctruthmode==1113 && abs(prodId)==225)continue; //skip tautau
             }
 
-            if(isMC_VBF || isMC_GG || mctruthmode==125){
+            if(isMC || mctruthmode==125){
                LorentzVector higgs(0,0,0,0);
   	       for(unsigned int igen=0; igen<gen.size(); igen++){
                   if(!gen[igen].isHardProcess()) continue;
 	          if(abs(gen[igen].pdgId())>=11 && abs(gen[igen].pdgId())<=16){ higgs += gen[igen].p4(); }
 	       }
-	       if(mctruthmode==125) {
+	       if(mctruthmode==125 && (isMC_GG || isMC_VBF) ) {
 	         if( isMC_125OnShell && higgs.mass()> 180) continue;
 	         if(!isMC_125OnShell && higgs.mass()<=180) continue;
 	       }
 	  
                //Line shape weights 
-               if(isMC_VBF || isMC_GG){    
+               if(isMC){    
                   mon.fillHisto("higgsMass_raw",    "all", higgs.mass(), weight);
+
+	          if(isMC_VBF || isMC_GG){
 
                   //WEIGHT for LineShape (NNLO kFactors + Interf), split in shape and scale unc with the following format:  scaleNominal, shapeNominal, scaleDown, shapeDown, scaleUp, shapeUp
                   //compute weight correction for all NR shapes
                   for(unsigned int nri=0;nri<NRparams.size();nri++){ 
                      std::vector<std::pair<double, TGraph*> > shapeWgtGr = hLineShapeGrVec[NRparams[nri] ];
-                     for(size_t iwgt=0; iwgt<shapeWgtGr.size(); iwgt++){ 
-                        lShapeWeights[nri][iwgt*2+0]=shapeWgtGr[iwgt].first;
-                        lShapeWeights[nri][iwgt*2+1]=shapeWgtGr[iwgt].second?shapeWgtGr[iwgt].second->Eval(higgs.mass()):1.0;
-                     }
-                     mon.fillHisto(TString("higgsMass_shape"      )+NRsuffix[nri], "all", higgs.mass(), weight*lShapeWeights[nri][1] );
-                     mon.fillHisto(TString("higgsMass_shape&scale")+NRsuffix[nri], "all", higgs.mass(), weight*lShapeWeights[nri][1]*lShapeWeights[nri][0] );
+		     if(!isMELA){
+                        for(size_t iwgt=0; iwgt<shapeWgtGr.size(); iwgt++){ 
+                           lShapeWeights[nri][iwgt*2+0]=shapeWgtGr[iwgt].first;
+                           lShapeWeights[nri][iwgt*2+1]=shapeWgtGr[iwgt].second?shapeWgtGr[iwgt].second->Eval(higgs.mass()):1.0;
+                        }
+		     }else if(isMELA){ 
+                        lMelaShapeWeights[nri][MelaMode] = higgs::utils::weightNarrowResonnance_MELA( mela, isMC_VBF, MelaMode, NRparams[nri].first, resonance, ev);
+		     }
+
+		     double shape_SF =0; double shapescale_SF = 0;
+		     if( !isMELA ){ shape_SF = lShapeWeights[nri][1]; shapescale_SF = lShapeWeights[nri][0]; }
+		     else if( isMELA ){ shape_SF = lMelaShapeWeights[nri][MelaMode]; shapescale_SF = lMelaShapeWeights[nri][MelaMode]; }
+
+		     std::cout << "Mela Weight: " << shape_SF << std::endl;		
+		     mon.fillHisto(TString("MELA_weights"         )+NRsuffix[nri], "all",     shape_SF, 1);   
+                     mon.fillHisto(TString("higgsMass_shape"      )+NRsuffix[nri], "all", higgs.mass(), weight*shape_SF );
+                     mon.fillHisto(TString("higgsMass_shape&scale")+NRsuffix[nri], "all", higgs.mass(), weight*shapescale_SF );
 
                      //printf("NRI BW=%i --> %6.2e %6.2e %6.2e %6.2e %6.2e %6.2e\n", nri, lShapeWeights[nri][0], lShapeWeights[nri][1], lShapeWeights[nri][2], lShapeWeights[nri][3], lShapeWeights[nri][4], lShapeWeights[nri][5]);
 
@@ -834,9 +860,18 @@ int main(int argc, char* argv[])
 
                      //printf("NRI AW=%i --> %6.2e %6.2e %6.2e %6.2e %6.2e %6.2e\n", nri, lShapeWeights[nri][0], lShapeWeights[nri][1], lShapeWeights[nri][2], lShapeWeights[nri][3], lShapeWeights[nri][4], lShapeWeights[nri][5]);
                   }  
-                  weight *= lShapeWeights[0][0]*lShapeWeights[0][1]; 
+                  if(!isMELA){ weight *= lShapeWeights[0][0]*lShapeWeights[0][1]; }
+		  else if(isMELA){ weight *= lMelaShapeWeights[0][MelaMode]; } 
+		} 
                }
             }
+          }
+
+	  //Weight in case the code run over Bckg in Mela Framework
+          if( !isMC_VBF && !isMC_GG && isMELA){
+             for(unsigned int nri=0; nri<NRsuffix.size(); nri++){
+                lMelaShapeWeights[nri][MelaMode] = 1.0;
+             }
           }
 
           //apply trigger and require compatibilitiy of the event with the PD
@@ -1262,33 +1297,15 @@ int main(int argc, char* argv[])
               if(isMC){
                   int flavId=jet.partonFlavour();  double eta=jet.eta();
 		  btsfutil.SetSeed(ev.eventAuxiliary().event()*10 + ijet*10000);
-                  if      (abs(flavId)==5){  
-					//  74X recommendation
-					//     btsfutil.modifyBTagsWithSF(hasCSVtag    , btagCal   .eval(BTagEntry::FLAV_B   , eta, jet.pt()), beff);
-                                        //     btsfutil.modifyBTagsWithSF(hasCSVtagUp  , btagCalUp .eval(BTagEntry::FLAV_B   , eta, jet.pt()), beff);
-                                        //     btsfutil.modifyBTagsWithSF(hasCSVtagDown, btagCalDn .eval(BTagEntry::FLAV_B   , eta, jet.pt()), beff);
-                                        //  80X recommendation
-                                        btsfutil.modifyBTagsWithSF(hasCSVtag    , btagCal80X.eval_auto_bounds("central", BTagEntry::FLAV_B   , eta, jet.pt()), beff);
-                                        btsfutil.modifyBTagsWithSF(hasCSVtagUp  , btagCal80X.eval_auto_bounds("up", BTagEntry::FLAV_B   , eta, jet.pt()), beff);
-                                        btsfutil.modifyBTagsWithSF(hasCSVtagDown, btagCal80X.eval_auto_bounds("down", BTagEntry::FLAV_B   , eta, jet.pt()), beff);
-                  }else if(abs(flavId)==4){  
-					//  74X recommendation
-					//     btsfutil.modifyBTagsWithSF(hasCSVtag    , btagCal   .eval(BTagEntry::FLAV_C   , eta, jet.pt()), beff);
-					//     btsfutil.modifyBTagsWithSF(hasCSVtagUp  , btagCalUp .eval(BTagEntry::FLAV_C   , eta, jet.pt()), beff);
-					//     btsfutil.modifyBTagsWithSF(hasCSVtagDown, btagCalDn .eval(BTagEntry::FLAV_C   , eta, jet.pt()), beff);
-                                        //  80X recommendation
-			                btsfutil.modifyBTagsWithSF(hasCSVtag    , btagCal80X.eval_auto_bounds("central", BTagEntry::FLAV_C   , eta, jet.pt()), beff);
-                                        btsfutil.modifyBTagsWithSF(hasCSVtagUp  , btagCal80X.eval_auto_bounds("up", BTagEntry::FLAV_C   , eta, jet.pt()), beff);
-                                        btsfutil.modifyBTagsWithSF(hasCSVtagDown, btagCal80X.eval_auto_bounds("down", BTagEntry::FLAV_C   , eta, jet.pt()), beff);
-                  }else{                
-					//  74X recommendation 
-					//     btsfutil.modifyBTagsWithSF(hasCSVtag    , btagCalL  .eval(BTagEntry::FLAV_UDSG, eta, jet.pt()), leff);
-                                        //     btsfutil.modifyBTagsWithSF(hasCSVtagUp  , btagCalLUp.eval(BTagEntry::FLAV_UDSG, eta, jet.pt()), leff);
-                                        //     btsfutil.modifyBTagsWithSF(hasCSVtagDown, btagCalLDn.eval(BTagEntry::FLAV_UDSG, eta, jet.pt()), leff);
-                                        //  80X recommendation
-			                btsfutil.modifyBTagsWithSF(hasCSVtag    , btagCal80X.eval_auto_bounds("central", BTagEntry::FLAV_UDSG   , eta, jet.pt()), leff);
-                                        btsfutil.modifyBTagsWithSF(hasCSVtagUp  , btagCal80X.eval_auto_bounds("up", BTagEntry::FLAV_UDSG   , eta, jet.pt()), leff);
-                                        btsfutil.modifyBTagsWithSF(hasCSVtagDown, btagCal80X.eval_auto_bounds("down", BTagEntry::FLAV_UDSG   , eta, jet.pt()), leff);
+                  if      (abs(flavId)==5){  btsfutil.modifyBTagsWithSF(hasCSVtag    , btagCal   .eval(BTagEntry::FLAV_B   , eta, jet.pt()), beff);
+                                             btsfutil.modifyBTagsWithSF(hasCSVtagUp  , btagCalUp .eval(BTagEntry::FLAV_B   , eta, jet.pt()), beff);
+                                             btsfutil.modifyBTagsWithSF(hasCSVtagDown, btagCalDn .eval(BTagEntry::FLAV_B   , eta, jet.pt()), beff);
+                  }else if(abs(flavId)==4){  btsfutil.modifyBTagsWithSF(hasCSVtag    , btagCal   .eval(BTagEntry::FLAV_C   , eta, jet.pt()), beff);
+                                             btsfutil.modifyBTagsWithSF(hasCSVtagUp  , btagCalUp .eval(BTagEntry::FLAV_C   , eta, jet.pt()), beff);
+                                             btsfutil.modifyBTagsWithSF(hasCSVtagDown, btagCalDn .eval(BTagEntry::FLAV_C   , eta, jet.pt()), beff);
+                  }else{                     btsfutil.modifyBTagsWithSF(hasCSVtag    , btagCalL  .eval(BTagEntry::FLAV_UDSG, eta, jet.pt()), leff);
+                                             btsfutil.modifyBTagsWithSF(hasCSVtagUp  , btagCalLUp.eval(BTagEntry::FLAV_UDSG, eta, jet.pt()), leff);
+                                             btsfutil.modifyBTagsWithSF(hasCSVtagDown, btagCalLDn.eval(BTagEntry::FLAV_UDSG, eta, jet.pt()), leff);
                   }
               }
 
@@ -1411,23 +1428,23 @@ int main(int argc, char* argv[])
                    std::vector<Float_t> photonVars;
                    photonVars.push_back(boson.pt());           
                    float photonWeightMain=1.0;
-		   float photonPuWeight=1.0;  
+		   float photonRhoWeight=1.0;  
                    if(L>0 && gammaWgtHandler) {
 		     photonWeightMain=gammaWgtHandler->getWeightFor(photonVars,string(L==1?"ee":"mumu")+evCat);
 		     
-		     if (doPUCorrections) { 
-		       TString puWeightsFileUrl(puWeightsFilePath[0].c_str());
-		       gSystem->ExpandPathName(puWeightsFileUrl); 
-		       puWeightsFile=TFile::Open(puWeightsFileUrl); 
+		     if (doRhoCorrections) { 
+		       TString rhoWeightsFileUrl(rhoWeightsFilePath[0].c_str());
+		       gSystem->ExpandPathName(rhoWeightsFileUrl); 
+		       rhoWeightsFile=TFile::Open(rhoWeightsFileUrl); 
  
-		       if (puWeightsFile) {
-			 TH2D* h_pu_zpt_weight = (TH2D*)puWeightsFile->Get(L==1?"h_rho_zpt_weight_e":"h_rho_zpt_weight_m");  
-			 photonPuWeight=h_pu_zpt_weight->GetBinContent(h_pu_zpt_weight->FindBin(boson.pt(), vtx.size())); 
-			 puWeightsFile->Close(); 
+		       if (rhoWeightsFile) {
+			 TH2D* h_rho_zpt_weight = (TH2D*)rhoWeightsFile->Get("h_rho_zpt_weight");
+			 photonRhoWeight=h_rho_zpt_weight->GetBinContent(h_rho_zpt_weight->FindBin(boson.pt(), rho)); 
+			 rhoWeightsFile->Close(); 
 		       }
 		     }
 		   }
-                   weight *= triggerPrescale * photonWeightMain * photonPuWeight;
+                   weight *= triggerPrescale * photonWeightMain * photonRhoWeight;
 		   if(is2016MC) weight *= phoEff.getPhotonEfficiency(selPhotons[0].pt(), selPhotons[0].superCluster()->eta(), "tight",patUtils::CutVersion::ICHEP16Cut ).first;
                }else{
                   continue;
@@ -1497,14 +1514,12 @@ int main(int argc, char* argv[])
                   } // end Trigger efficiencies
 
 
-		  mon.fillHisto("eventflow",  tags,0,weight);
+    
 
+                  mon.fillHisto("eventflow",  tags,0,weight);
                   mon.fillHisto("nvtxraw",  tags,vtx.size(),weight/puWeight);
                   mon.fillHisto("nvtx",  tags,vtx.size(),weight);
                   mon.fillHisto("rho",  tags,rho,weight);
-
-		  mon.fillHisto("zpt_vs_nvtx",tags,boson.pt(),vtx.size(),weight);
-		  mon.fillHisto("zpt_vs_rho",tags,boson.pt(),rho,weight);
 
                   if(chTags.size()==0) continue;
                   mon.fillHisto("eventflow",  tags,1,weight);
@@ -1583,8 +1598,6 @@ int main(int argc, char* argv[])
                             mon.fillHisto( "metphi",tags,imet.phi(),weight);
                             mon.fillHisto( "metphiUnCor",tags,met.corP4(pat::MET::METCorrectionLevel::Type1).phi(),weight);
                             mon.fillHisto( "bosonnvtx",tags,vtx.size(),weight);                                                               
-			    mon.fillHisto( "bosonrho",tags,rho,weight); 
-
                             mon.fillHisto( "bosoneta",tags,boson.eta(),weight);                                                                                
                             mon.fillHisto( "bosonphi",tags,boson.phi(),weight);                                                               
                             mon.fillHisto( "bosonphiHG",tags,boson.phi(),weight);
@@ -1735,27 +1748,33 @@ int main(int argc, char* argv[])
                   mon.fillHisto(TString("mtSyst")+varNames[ivar],tags, mt,weight);
                   mon.fillHisto(TString("metSyst")+varNames[ivar],tags, imet.pt(),weight);                    
 
-
-
-
                   //scan the MET cut and fill the shapes
                   for(unsigned int index=0;index<optim_Cuts1_met.size();index++){             
                      if(imet.pt()>optim_Cuts1_met[index]){
                        for(unsigned int nri=0;nri<NRparams.size();nri++){
-                          //Higgs line shape
+                          
+			  //Higgs line shape
                           float shapeWeight = weight;   //used for shape dependent weights (avoid overwritting chWeights)
-                          double weightToOtherNRI = ( (lShapeWeights[nri][0] * lShapeWeights[nri][1]) / (lShapeWeights[0][0] * lShapeWeights[0][1]) );  //remove weights form nri=0 as those are already in the nominal weight and apply the one for NRI!=0;
-                          if(!std::isnan((double)weightToOtherNRI))shapeWeight *= weightToOtherNRI; 
 
-                          if(varNames[ivar]=="_signal_normdown") shapeWeight*=lShapeWeights[nri][2];
-                          if(varNames[ivar]=="_signal_lshapedown") shapeWeight*=lShapeWeights[nri][3];
-                          if(varNames[ivar]=="_signal_normup"  ) shapeWeight*=lShapeWeights[nri][4];
-                          if(varNames[ivar]=="_signal_lshapeup"  ) shapeWeight*=lShapeWeights[nri][5];
+			  if( !isMELA ){
+                             double weightToOtherNRI = ( (lShapeWeights[nri][0] * lShapeWeights[nri][1]) / (lShapeWeights[0][0] * lShapeWeights[0][1]) );  //remove weights form nri=0 as those are already in the nominal weight and apply the one for NRI!=0;
+                             if(!std::isnan((double)weightToOtherNRI))shapeWeight *= weightToOtherNRI; 
+
+                             if( varNames[ivar]=="_signal_normdown"   ) shapeWeight*=lShapeWeights[nri][2];
+                             if( varNames[ivar]=="_signal_lshapedown" ) shapeWeight*=lShapeWeights[nri][3];
+                             if( varNames[ivar]=="_signal_normup"     ) shapeWeight*=lShapeWeights[nri][4];
+                             if( varNames[ivar]=="_signal_lshapeup"   ) shapeWeight*=lShapeWeights[nri][5];
+			  } else if( isMELA ){		
+			     if( varNames[ivar]=="_signal_normdown"   ) shapeWeight*=lMelaShapeWeights[nri][MelaMode];
+                             if( varNames[ivar]=="_signal_lshapedown" ) shapeWeight*=lMelaShapeWeights[nri][MelaMode];
+                             if( varNames[ivar]=="_signal_normup"     ) shapeWeight*=lMelaShapeWeights[nri][MelaMode];
+                             if( varNames[ivar]=="_signal_lshapeup"   ) shapeWeight*=lMelaShapeWeights[nri][MelaMode];
+			  }
 
                           //if(nri==0 && index==0)printf("%9i:%9lli SYST:%30s  Met=%8.3f mT=%8.3f  Weight=%6.2E\n",  ev.eventAuxiliary().run(), ev.eventAuxiliary().event(), varNames[ivar].Data(), imet.pt(), mt, weight ); 
 
-                          mon.fillHisto(TString("mt_shapes")+NRsuffix[nri]+varNames[ivar],tags,index, mt,shapeWeight);
-                          mon.fillHisto(TString("met_shapes")+NRsuffix[nri]+varNames[ivar],tags,index, imet.pt(),shapeWeight);                    
+                          mon.fillHisto(  TString("mt_shapes")+NRsuffix[nri]+varNames[ivar], tags, index,        mt, shapeWeight);
+                          mon.fillHisto( TString("met_shapes")+NRsuffix[nri]+varNames[ivar], tags, index, imet.pt(), shapeWeight);                    
                        }
                     }
                  }
@@ -1768,15 +1787,23 @@ int main(int argc, char* argv[])
                   for(unsigned int index=0;index<optim_Cuts1_met.size();index++){             
                      if(imet.pt()>optim_Cuts1_met[index]){
                        for(unsigned int nri=0;nri<NRparams.size();nri++){
+
                           //Higgs line shape
                           float shapeWeight = weight;   //used for shape dependent weights (avoid overwritting chWeights)
-                          double weightToOtherNRI = ( (lShapeWeights[nri][0] * lShapeWeights[nri][1]) / (lShapeWeights[0][0] * lShapeWeights[0][1]) );  //remove weights form nri=0 as those are already in the nominal weight and apply the one for NRI!=0;
-                          if(!std::isnan((double)weightToOtherNRI))shapeWeight *= weightToOtherNRI; 
-
-                          if(varNames[ivar]=="_signal_normdown") shapeWeight*=lShapeWeights[nri][2];
-                          if(varNames[ivar]=="_signal_lshapedown") shapeWeight*=lShapeWeights[nri][3];
-                          if(varNames[ivar]=="_signal_normup"  ) shapeWeight*=lShapeWeights[nri][4];
-                          if(varNames[ivar]=="_signal_lshapeup"  ) shapeWeight*=lShapeWeights[nri][5];
+                          
+			  if( !isMELA ){
+			     double weightToOtherNRI = ( (lShapeWeights[nri][0] * lShapeWeights[nri][1]) / (lShapeWeights[0][0] * lShapeWeights[0][1]) );  //remove weights form nri=0 as those are already in the nominal weight and apply the one for NRI!=0;
+                             if(!std::isnan((double)weightToOtherNRI))shapeWeight *= weightToOtherNRI; 
+                             if( varNames[ivar]=="_signal_normdown"   ) shapeWeight*=lShapeWeights[nri][2];
+                             if( varNames[ivar]=="_signal_lshapedown" ) shapeWeight*=lShapeWeights[nri][3];
+                             if( varNames[ivar]=="_signal_normup"     ) shapeWeight*=lShapeWeights[nri][4];
+                             if( varNames[ivar]=="_signal_lshapeup"   ) shapeWeight*=lShapeWeights[nri][5];
+ 			  }else if( isMELA ){
+                             if( varNames[ivar]=="_signal_normdown"   ) shapeWeight*=lMelaShapeWeights[nri][MelaMode];
+                             if( varNames[ivar]=="_signal_lshapedown" ) shapeWeight*=lMelaShapeWeights[nri][MelaMode];
+                             if( varNames[ivar]=="_signal_normup"     ) shapeWeight*=lMelaShapeWeights[nri][MelaMode];
+                             if( varNames[ivar]=="_signal_lshapeup"   ) shapeWeight*=lMelaShapeWeights[nri][MelaMode];
+                          }
 
                           //if(nri==0 && index==0)printf("%9i:%9lli SYST:%30s  Met=%8.3f mT=%8.3f  Weight=%6.2E\n",  ev.eventAuxiliary().run(), ev.eventAuxiliary().event(), varNames[ivar].Data(), imet.pt(), mt, weight ); 
 
