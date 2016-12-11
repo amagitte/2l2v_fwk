@@ -12,6 +12,13 @@ wget -O - --no-check-certificate https://raw.githubusercontent.com/cms2l2v/2l2v_
 export SCRAM_ARCH=slc6_amd64_gcc530
 cmsrel CMSSW_8_0_14
 cd CMSSW_8_0_14/src/
+
+#installation of MELA (used only by 2l2nu analysis)
+git clone https://github.com/cms-analysis/HiggsAnalysis-ZZMatrixElement.git ZZMatrixElement
+cd ZZMatrixElement 
+setup.sh clean
+. setup.sh -j 12 
+
 cmsenv
 
 # The following fail for the moment:
