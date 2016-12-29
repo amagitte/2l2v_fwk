@@ -272,7 +272,6 @@ namespace higgs{
    float ComputeInterfWeight( Mela& mela, bool isVBF, TString MelaMode, double heavyMass, double heavyWidth, SimpleParticleCollection_t& daughters, SimpleParticleCollection_t& associated, SimpleParticleCollection_t& mothers){
 
 	float Interf_weight=0;
-	//cout << "Heavy mass beg=" << heavyMass << endl;
 
 	if(isVBF){
 		mela.setInputEvent(&daughters, &associated, &mothers, true);
@@ -282,21 +281,20 @@ namespace higgs{
 
 			//Bckg Only
                 	mela.setProcess( TVar::bkgZZ, TVar::MCFM, TVar::JJVBF_S);
-			mela.computeP( Bckg_wg, false);
+               		mela.computeProdDecP( Bckg_wg, false);
 
 			//Heavy Boson Only
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
-                        mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1; 
-			mela.computeP( Sigh2_wg, false);	
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);	
+			mela.computeProdDecP( Sigh2_wg, false);	
+
 
 			//Bckg+Heavy Boson
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
-                        mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1; 
-                        mela.computeP( All_wg, false); 
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);	
+                        mela.computeProdDecP( All_wg, false); 
 
 			Interf_weight = All_wg - Sigh2_wg - Bckg_wg;
 
@@ -306,21 +304,19 @@ namespace higgs{
 
 			//Bckg Only
                         mela.setProcess( TVar::bkgZZ, TVar::MCFM, TVar::JJVBF_S);
-                        mela.computeP( Bckg_wg, false); 
+                        mela.computeProdDecP( Bckg_wg, false); 
 
                         //Light Higgs Only 
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1; 
-                        mela.computeP( Sigh1_wg, false); 
+                        mela.computeProdDecP( Sigh1_wg, false); 
 
                         //Bckg+Light Higgs 
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1; 
-                        mela.computeP( All_wg, false); 
+                        mela.computeProdDecP( All_wg, false); 
                         
                         Interf_weight = All_wg - Sigh1_wg - Bckg_wg;
                 
@@ -330,30 +326,26 @@ namespace higgs{
 
 			//Bckg Only
                         mela.setProcess( TVar::bkgZZ, TVar::MCFM, TVar::JJVBF_S);
-                        mela.computeP( Bckg_wg, false); 
+                        mela.computeProdDecP( Bckg_wg, false); 
 
 			//Light Higgs Only
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1; 
-                        mela.computeP( Sigh1_wg, false); 
+                        mela.computeProdDecP( Sigh1_wg, false); 
 
 			//Heavy Higgs Only
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1; 
-                        mela.computeP( Sigh2_wg, false); 
+                        mela.computeProdDecP( Sigh2_wg, false); 
 
 			//Bckg+Heavy Higgs+Light Higgs
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 1);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1; 
-			mela.selfDHzzcoupl[1][gHIGGS_VV_1][0]=1;
-			mela.computeP( All_wg, false);
+			mela.computeProdDecP( All_wg, false);
 
 			Interf_weight = All_wg - Sigh1_wg - Sigh2_wg - Bckg_wg;
 
@@ -364,44 +356,38 @@ namespace higgs{
 
 			//Bckg Only
                         mela.setProcess( TVar::bkgZZ, TVar::MCFM, TVar::JJVBF_S);
-                        mela.computeP( Bckg_wg, false);
+                        mela.computeProdDecP( Bckg_wg, false);
 
 			//Light Higgs Only
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;
-                        mela.computeP( Sigh1_wg, false);
+                        mela.computeProdDecP( Sigh1_wg, false);
 
 			//Heavy Higgs Only
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;
-                        mela.computeP( Sigh2_wg, false);
+                        mela.computeProdDecP( Sigh2_wg, false);
 
 			//Bckg+Light Higgs+Heavy Higgs
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);	
-                        mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 1);
-                        mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;
-                        mela.selfDHzzcoupl[1][gHIGGS_VV_1][0]=1;
-                        mela.computeP( All_wg, false);
+                        mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 1); 
+                        mela.computeProdDecP( All_wg, false);
 
 			//Bckg+Light Higgs
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;
-                        mela.computeP( All_h1Bckg, false);
+                        mela.computeProdDecP( All_h1Bckg, false);
 
 			//Bckg+Heavy Higgs
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;
-                        mela.computeP( All_h2Bckg, false);
+                        mela.computeProdDecP( All_h2Bckg, false);
 
                         h2Bckg = All_h2Bckg - Sigh2_wg - Bckg_wg;
                         h1Bckg = All_h1Bckg - Sigh1_wg - Bckg_wg;
@@ -412,26 +398,22 @@ namespace higgs{
 			float All_wg=0; float All_h1Bckg=0; float Sigh2_wg=0;	
 			//Bckg+Light Higgs
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;
-                        mela.computeP( All_h1Bckg, false);
+                        mela.computeProdDecP( All_h1Bckg, false);
 
 			//Heavy Higgs Only
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;
-                        mela.computeP( Sigh2_wg, false);
+                        mela.computeProdDecP( Sigh2_wg, false);
 
 			//Light Higgs+Heavy Higgs+Continuum
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 1);
-			mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;
-			mela.selfDHzzcoupl[1][gHIGGS_VV_1][0]=1;
-                        mela.computeP( All_wg, false);
+                        mela.computeProdDecP( All_wg, false);
 
 			Interf_weight = All_wg - All_h1Bckg - Sigh2_wg;
 		}
@@ -448,18 +430,18 @@ namespace higgs{
                        
 			//Heavy Higgs Only
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
 			mela.computeP( Sigh2_wg, false);
 			  
 			//Bckg+Heavy Higgs
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( All_wg, false); 
 
                         Interf_weight = All_wg - Sigh2_wg - Bckg_wg;
@@ -474,18 +456,18 @@ namespace higgs{
                        
 			//Light Higgs Only 
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( Sigh1_wg, false);
                        
 			//Bckg+Light Higgs Only 
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( All_wg, false); 
                         
                         Interf_weight = All_wg - Sigh1_wg - Bckg_wg;
@@ -500,29 +482,29 @@ namespace higgs{
 
 			//Light Higgs Only
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( Sigh1_wg, false);
 
 			//Heavy Higgs Only
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( Sigh2_wg, false);
 
 			//Bckg+Light Higgs+Heavy Higgs
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 1);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHbbcoupl[1][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[1][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[1][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[1][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( All_wg, false);
 
                         Interf_weight = All_wg - Sigh1_wg - Sigh2_wg - Bckg_wg;
@@ -538,45 +520,45 @@ namespace higgs{
 
 			//Light Higgs Only
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( Sigh1_wg, false); 
 
 			//Heavy Higgs Only
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( Sigh2_wg, false); 
 
 			//Bckg+Light Higgs+Heavy Higgs
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 1);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHbbcoupl[1][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[1][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[1][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[1][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( All_wg, false);
 
 			//Bckg+Light Higgs
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( All_h1Bckg, false);
 
 			//Bckg+Heavy Higgs
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( All_h2Bckg, false);
 
 			h2Bckg = All_h2Bckg - Sigh2_wg - Bckg_wg;
@@ -588,30 +570,29 @@ namespace higgs{
                         float All_wg=0; float All_h1Bckg=0; float Sigh2_wg=0;
 
 			//Light higgs+Continuum
-                        mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::ZZGG); 
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( All_h1Bckg, false);
 
 			//Heavy Higgs
                         mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( Sigh2_wg, false);
 
 			//Light Higgs+Heavy Higgs+Continuum
                         mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::ZZGG);
-                        mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
                         mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 1);
-                        mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHbbcoupl[1][gHIGGS_KAPPA][0]=1.0;
-                        mela.selfDHttcoupl[1][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHbbcoupl[1][gHIGGS_KAPPA][0]=1.0;
+                        //mela.selfDHttcoupl[1][gHIGGS_KAPPA][0]=1.0;
                         mela.computeP( All_wg, false);
 
                         Interf_weight = All_wg - All_h1Bckg - Sigh2_wg;
@@ -626,7 +607,7 @@ namespace higgs{
 
    float weightNarrowResonnance_MELA( Mela& mela, bool isVBF, TString MelaMode, double CP, double heavyMass, fwlite::Event& eV){
 
-	//printf("MELA mode: %s \n", MelaMode.Data());
+        //Mela mela( 13, heavyMass, TVar::DEBUG);
 
         fwlite::Handle< LHEEventProduct > lheEv;
         lheEv.getByLabel(eV, "externalLHEProducer");
@@ -634,8 +615,6 @@ namespace higgs{
         //Weight to reweight the MELA shape to the real cross-section
         double continuum_weight=1;
         continuum_weight = weightContinuum_MELA(isVBF,CP,heavyMass);
-
-        printf("CP: %8.4f Mass: %5.1f Weight: %12.10f \n", CP, heavyMass, continuum_weight);
 	
 	//Fill a Map with Mass and Width SM Like
 	double heavyWidth=0; float weightSM=1; float weightMELA=1; float finalweight=1; //float kF; 
@@ -652,44 +631,59 @@ namespace higgs{
         TLorentzVector Higgs;
 
 	//Loop on particles and fill SimpleParticleCollection_t 
-        for(unsigned int k=0; k<lheEv->hepeup().IDUP.size(); k++){
+        for(int k=0; k<lheEv->hepeup().NUP; k++){
 
-	    int PdgId=lheEv->hepeup().IDUP.at(k); int Status=lheEv->hepeup().ISTUP.at(k);
+	    double PdgId=0.; double Status=0.;
+	    PdgId=lheEv->hepeup().IDUP.at(k); 
+	    Status=lheEv->hepeup().ISTUP.at(k);
 	    double Px=lheEv->hepeup().PUP.at(k)[0]; double Py=lheEv->hepeup().PUP.at(k)[1]; 
 	    double Pz=lheEv->hepeup().PUP.at(k)[2]; double  E=lheEv->hepeup().PUP.at(k)[3];
-            if( (abs(PdgId)<7 || PdgId==21) && Status<0 ){
+	    double Pt=std::sqrt(std::pow(Px,2)+std::pow(Py,2));
+	    printf("Particle: %4.1f Status: %4.1f Pt: %10.5f \n", PdgId, Status, Pt);
+            if( (abs(PdgId)<7.0 || PdgId==21.0) && Status<0.0 ){
                 TLorentzVector partons( Px, Py, Pz, E);
-		if (abs(PdgId)<7 && isVBF) mothers.push_back( SimpleParticle_t( PdgId, partons)); //Filling Infos
+		if (abs(PdgId)<7.0 && isVBF) mothers.push_back( SimpleParticle_t( PdgId, partons)); //Filling Infos
                 else mothers.push_back(SimpleParticle_t(0, partons)); //Else fill gluons as 0 (unknown parton) in case the initial state is qg in ggF, or qg or gg in VBF
-	    } else if ( (abs(PdgId)<7 || PdgId==21) && Status>0){
+	    } else if ( (abs(PdgId)<7.0 || PdgId==21.0) && Status>0.0){
                 TLorentzVector extra_partons( Px, Py, Pz, E);
-                associated.push_back( SimpleParticle_t( PdgId, extra_partons));
-	    } else if ( abs(PdgId)==11 || abs(PdgId)==12 || abs(PdgId)==13 || abs(PdgId)==14 || abs(PdgId)==15 || abs(PdgId)==16 ){
+                if (abs(PdgId)<7.0 && isVBF) associated.push_back( SimpleParticle_t( PdgId, extra_partons));
+                else if(abs(PdgId)==21.0 && isVBF) associated.push_back(SimpleParticle_t(0, extra_partons)); 
+	    } else if ( abs(PdgId)==11.0 || abs(PdgId)==12.0 || abs(PdgId)==13.0 || abs(PdgId)==14.0 || abs(PdgId)==15.0 || abs(PdgId)==16.0 ){
 		TLorentzVector lepP( Px, Py, Pz, E);
 		daughters.push_back( SimpleParticle_t( PdgId, lepP)); //Filling Infos
-	    } else if (  abs(PdgId)==35 ){
+	    } else if (  abs(PdgId)==25.0 ){
                 Higgs.SetPxPyPzE( Px, Py, Pz, E);
 	    }
 
 	}
-	
+
+	for(unsigned int m=0; m<mothers.size(); m++){
+		printf("Mother collection=> Particle: %10i Pt: %10.5f \n", mothers.at(m).first, mothers.at(m).second.Pt());
+	}
+	printf(" \n");
+        for(unsigned int m=0; m<associated.size(); m++){
+                printf("Associated collection=> Particle: %10i Pt: %10.5f \n", associated.at(m).first, associated.at(m).second.Pt());
+        }
+        printf(" \n");
+	std::sort( associated.begin(), associated.end(), utils::sort_CandidatesByPt_V2);
+        for(unsigned int m=0; m<associated.size(); m++){
+                printf("Associated collection post Soterd function=> Particle: %10i Pt: %10.5f \n", associated.at(m).first, associated.at(m).second.Pt());
+        }
+        printf(" \n");	
+
         mela.setCandidateDecayMode(TVar::CandidateDecay_ZZ); //Mela Candidate mode initialized
 	if(isVBF){ 
 		mela.setInputEvent(&daughters, &associated, &mothers, true);
 		mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF_S);
-		mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;
+        	mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
+		mela.computeProdDecP( weightSM, false);
 	}else{ 
 		mela.setInputEvent(&daughters, 0, &mothers, true);
 		mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
-                mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+        	mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
+                mela.computeP( weightSM, false);
 	} 
 	
-	//cout << "hello here the SM" << heavyMass << " " << heavyWidth << endl;	
-	mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses	
-        mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-        mela.computeP( weightSM, false);
-
         //BSM reweighiting
         mela.resetInputEvent();
 
@@ -700,28 +694,28 @@ namespace higgs{
                 	mela.setInputEvent(&daughters, &associated, &mothers, true);
                 	if(MelaMode.Contains("Continuum")){	
 				mela.setProcess( TVar::bkgZZ, TVar::MCFM, TVar::JJVBF_S);
+				mela.computeProdDecP( weightSM, false);
 			} else if(MelaMode.Contains("Bckg")){
                                 mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                                mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                                //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                                 mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-				mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;
+				mela.computeProdDecP( weightSM, false);
 			} else if(MelaMode.Contains("Sigh2")){
                         	mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF_S);
-        			mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+        			//mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
         			mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-				mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;	
+			        mela.computeProdDecP( weightSM, false);
 			} else if(MelaMode.Contains("Sigh1")){
                         	mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        	mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
-                        	mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-				mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;
+                        	//mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        	mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);	
+	                	mela.computeProdDecP( weightSM, false);
 			} else if(MelaMode.Contains("All")){
                         	mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::JJVBF_S);
-                        	mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        	//mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         	mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
                         	mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 1);
-				mela.selfDHzzcoupl[0][gHIGGS_VV_1][0]=1;
-				mela.selfDHzzcoupl[1][gHIGGS_VV_1][0]=1;
+	                	mela.computeProdDecP( weightSM, false);
 			}
         	}else{
                 	mela.setInputEvent(&daughters, 0, &mothers, true);	
@@ -729,31 +723,31 @@ namespace higgs{
                 		mela.setProcess( TVar::bkgZZ, TVar::MCFM, TVar::ZZGG);
 			} else if(MelaMode.Contains("Bckg")){
                                 mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::ZZGG);
-                                mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                                //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                                 mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-				mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-				mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0; 
+				//mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+				//mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0; 
 			} else if(MelaMode.Contains("Sigh2")){ 
                         	mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
-                        	mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses	
+                        	//mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses	
                         	mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
-                                mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                                mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                                //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                                //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
 			} else if(MelaMode.Contains("Sigh1")){ 
                         	mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::ZZGG);
-                        	mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        	//mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         	mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
-                                mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                                mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                                //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                                //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
 			} else if(MelaMode.Contains("All")){	
                         	mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::ZZGG);
-                        	mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
+                        	//mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         	mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
                         	mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 1);
-                                mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                                mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
-                                mela.selfDHbbcoupl[1][gHIGGS_KAPPA][0]=1.0;
-                                mela.selfDHttcoupl[1][gHIGGS_KAPPA][0]=1.0;
+                                //mela.selfDHbbcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                                //mela.selfDHttcoupl[0][gHIGGS_KAPPA][0]=1.0;
+                                //mela.selfDHbbcoupl[1][gHIGGS_KAPPA][0]=1.0;
+                                //mela.selfDHttcoupl[1][gHIGGS_KAPPA][0]=1.0;
                 	}
         	}
 		
@@ -765,7 +759,7 @@ namespace higgs{
 
         //if(!isVBF) kF=Get_NNLO_kFactors(Higgs.M());
 
-        printf("Mela Weight BSM: %20.18f Mela Weigth SM: %20.18f Continuum Weigth: %20.18f \n", weightMELA, weightSM, continuum_weight);
+        //printf("Mela Weight BSM: %20.18f Mela Weigth SM: %20.18f Continuum Weigth: %20.18f \n", weightMELA, weightSM, continuum_weight);
 	mela.resetInputEvent();
         finalweight=(weightMELA/weightSM)*continuum_weight;
 

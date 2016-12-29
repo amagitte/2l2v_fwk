@@ -66,11 +66,15 @@ namespace higgs{
     //float ComputeAllWeight( Mela& mela, bool isVBF, TString MelaMode, double kFactor, double width, double mass, SimpleParticleCollection_t& daughters, SimpleParticleCollection_t& associated, SimpleParticleCollection_t& mothers);
     double Get_NNLO_kFactors( double mass);
 
+    float weightContinuum_MELA( bool isVBF, double CP, double heavyMass);
+
     //reweight to H125 interference
     double weightToH125Interference(double mass,double width,TFile *intFile,TString var); 
 
     //transverse mass
     double transverseMass(const LorentzVector &visible, const LorentzVector &invisible, bool assumeSameMass);
+
+    inline bool sort_CandidatesByPt_V2(const SimpleParticle_t &a, const SimpleParticle_t &b) { return a.second.Pt()>b.second.Pt(); }
 
   }  
 }
