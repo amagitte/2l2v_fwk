@@ -5,6 +5,8 @@
 #include "TLorentzVector.h"
 #include "UserCode/llvv_fwk/interface/th1fmorph.h"
 
+#include <sstream>
+
 namespace higgs{
 
   namespace utils{
@@ -267,6 +269,45 @@ namespace higgs{
      sF = sFGr->Eval(mass);
      return sF;
 
+   }
+
+   double Get_CPS_weights( double mass, double nominal_mass){
+
+	double CPS_weight=1.0;
+	std::vector<double> Mass;
+	std::vector<double> Wgt;
+	std::ostringstream strs;
+	strs << nominal_mass;
+	std::string mass_str = strs.str();
+	string File="CPS_weights_M"+mass_str+"GeV.txt";
+	TString cps_FileUrl(string(std::getenv("CMSSW_BASE"))+"/src/UserCode/llvv_fwk/data/CPS_weights/"+File);
+	gSystem->ExpandPathName(cps_FileUrl);
+
+	//printf("File used: %s \n", cps_FileUrl.Data() );
+
+     	fstream file( cps_FileUrl.Data() );
+        string line;
+        if ( file.is_open() ){
+                 int itrLine=0;
+                 while ( !file.eof() ){
+			itrLine++;
+                        getline(file,line);
+                        stringstream file_line(line,ios_base::in); 
+			double mass, weight;
+			file_line >> mass >> weight;
+			//printf("Mass: %5.1f Weight: %10.5f \n", mass, weight);
+			Mass.push_back(mass); Wgt.push_back(weight);	
+		 }
+	}
+
+	double MassArr[Mass.size()]; double WgtArr[Mass.size()];
+
+	for(unsigned int k=0; k<Mass.size(); k++){ MassArr[k]=Mass[k]; WgtArr[k]=Wgt[k];}
+
+     	TGraph *Cps_Gr = new TGraph(Mass.size(),MassArr,WgtArr);
+     	CPS_weight = Cps_Gr->Eval(mass);
+
+	return CPS_weight;
    }
 
    float ComputeInterfWeight( Mela& mela, bool isVBF, TString MelaMode, double heavyMass, double heavyWidth, SimpleParticleCollection_t& daughters, SimpleParticleCollection_t& associated, SimpleParticleCollection_t& mothers){
@@ -615,6 +656,9 @@ namespace higgs{
         //Weight to reweight the MELA shape to the real cross-section
         double continuum_weight=1;
         continuum_weight = weightContinuum_MELA(isVBF,CP,heavyMass);
+
+	//CPS weight
+	double cps_weight=1.;
 	
 	//Fill a Map with Mass and Width SM Like
 	double heavyWidth=0; float weightSM=1; float weightMELA=1; float finalweight=1; //float kF; 
@@ -633,6 +677,7 @@ namespace higgs{
 	//Loop on particles and fill SimpleParticleCollection_t 
         for(int k=0; k<lheEv->hepeup().NUP; k++){
 
+	    if( isVBF && k==5 ) continue; //brutal way to avoid the extra emission in VBF 
 	    double PdgId=0.; double Status=0.;
 	    PdgId=lheEv->hepeup().IDUP.at(k); 
 	    Status=lheEv->hepeup().ISTUP.at(k);
@@ -692,25 +737,30 @@ namespace higgs{
 	if( !MelaMode.Contains("Interf") ){
         	if(isVBF){
                 	mela.setInputEvent(&daughters, &associated, &mothers, true);
-                	if(MelaMode.Contains("Continuum")){	
+                	if(MelaMode.Contains("Continuum")){
+				printf("Inside VBF channel, in Continuum mode \n");	
 				mela.setProcess( TVar::bkgZZ, TVar::MCFM, TVar::JJVBF_S);
 				mela.computeProdDecP( weightSM, false);
 			} else if(MelaMode.Contains("Bckg")){
+                                printf("Inside VBF channel, in Bckg mode \n");
                                 mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::JJVBF_S);
                                 //mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                                 mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
 				mela.computeProdDecP( weightSM, false);
 			} else if(MelaMode.Contains("Sigh2")){
+                                printf("Inside VBF channel, in Signal h2 mode \n");
                         	mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF_S);
         			//mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
         			mela.setMelaHiggsMassWidth( heavyMass, heavyWidth, 0);
 			        mela.computeProdDecP( weightSM, false);
 			} else if(MelaMode.Contains("Sigh1")){
+                                printf("Inside VBF channel, in Signal h1 mode \n");
                         	mela.setProcess( TVar::HSMHiggs, TVar::MCFM, TVar::JJVBF_S);
                         	//mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         	mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);	
 	                	mela.computeProdDecP( weightSM, false);
 			} else if(MelaMode.Contains("All")){
+                                printf("Inside VBF channel, in All mode \n");
                         	mela.setProcess( TVar::bkgZZ_SMHiggs, TVar::MCFM, TVar::JJVBF_S);
                         	//mela.setMelaHiggsMassWidth( -1, 0, 0); //Clean all the masses
                         	mela.setMelaHiggsMassWidth( 125, 4.07e-3, 0);
@@ -759,9 +809,11 @@ namespace higgs{
 
         //if(!isVBF) kF=Get_NNLO_kFactors(Higgs.M());
 
+	cps_weight=Get_CPS_weights( Higgs.M(), heavyMass);
+
         //printf("Mela Weight BSM: %20.18f Mela Weigth SM: %20.18f Continuum Weigth: %20.18f \n", weightMELA, weightSM, continuum_weight);
 	mela.resetInputEvent();
-        finalweight=(weightMELA/weightSM)*continuum_weight;
+        finalweight=(weightMELA/weightSM)*cps_weight*continuum_weight;
 
         return finalweight;
 

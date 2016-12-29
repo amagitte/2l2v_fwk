@@ -65,7 +65,7 @@ namespace higgs{
     float ComputeInterfWeight( Mela& mela, bool isVBF, TString MelaMode, double width, double mass, SimpleParticleCollection_t& daughters, SimpleParticleCollection_t& associated, SimpleParticleCollection_t& mothers);
     //float ComputeAllWeight( Mela& mela, bool isVBF, TString MelaMode, double kFactor, double width, double mass, SimpleParticleCollection_t& daughters, SimpleParticleCollection_t& associated, SimpleParticleCollection_t& mothers);
     double Get_NNLO_kFactors( double mass);
-
+    double Get_CPS_weights( double mass, double nominal_mass);
     float weightContinuum_MELA( bool isVBF, double CP, double heavyMass);
 
     //reweight to H125 interference
