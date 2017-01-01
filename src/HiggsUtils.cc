@@ -654,7 +654,7 @@ namespace higgs{
         lheEv.getByLabel(eV, "externalLHEProducer");
 
         //Weight to reweight the MELA shape to the real cross-section
-        double continuum_weight=1;
+        double continuum_weight=1.;
         continuum_weight = weightContinuum_MELA(isVBF,CP,heavyMass);
 
 	//CPS weight
@@ -677,15 +677,15 @@ namespace higgs{
 	//Loop on particles and fill SimpleParticleCollection_t 
         for(int k=0; k<lheEv->hepeup().NUP; k++){
 
-	    if( isVBF && k==5 ) continue; //brutal way to avoid the extra emission in VBF 
-	    double PdgId=0.; double Status=0.;
+	    //if( isVBF && k==5 ) continue; //brutal way to avoid the extra emission in VBF 
+	    int PdgId=0.; int Status=0.;
 	    PdgId=lheEv->hepeup().IDUP.at(k); 
 	    Status=lheEv->hepeup().ISTUP.at(k);
 	    double Px=lheEv->hepeup().PUP.at(k)[0]; double Py=lheEv->hepeup().PUP.at(k)[1]; 
-	    double Pz=lheEv->hepeup().PUP.at(k)[2]; double  E=lheEv->hepeup().PUP.at(k)[3];
-	    double Pt=std::sqrt(std::pow(Px,2)+std::pow(Py,2));
-	    printf("Particle: %4.1f Status: %4.1f Pt: %10.5f \n", PdgId, Status, Pt);
-            if( (abs(PdgId)<7.0 || PdgId==21.0) && Status<0.0 ){
+	    double Pz=lheEv->hepeup().PUP.at(k)[2]; double  E=lheEv->hepeup().PUP.at(k)[3]; 
+	    TLorentzVector check( Px, Py, Pz, E);
+	    printf("Particle: %4i Status: %4i Pt: %10.5f Eta: %6.3f \n", PdgId, Status, check.Pt(), check.Eta());
+            if( (abs(PdgId)<7.0 || PdgId==21.0) && Status<0.0 ){	
                 TLorentzVector partons( Px, Py, Pz, E);
 		if (abs(PdgId)<7.0 && isVBF) mothers.push_back( SimpleParticle_t( PdgId, partons)); //Filling Infos
                 else mothers.push_back(SimpleParticle_t(0, partons)); //Else fill gluons as 0 (unknown parton) in case the initial state is qg in ggF, or qg or gg in VBF
@@ -702,18 +702,18 @@ namespace higgs{
 
 	}
 
-	for(unsigned int m=0; m<mothers.size(); m++){
-		printf("Mother collection=> Particle: %10i Pt: %10.5f \n", mothers.at(m).first, mothers.at(m).second.Pt());
+	/*for(unsigned int m=0; m<mothers.size(); m++){
+		printf("Mother collection=> Particle: %5i Pt: %10.5f Eta: %6.3f \n", mothers.at(m).first, mothers.at(m).second.Pt(), mothers.at(m).second.Eta());
 	}
 	printf(" \n");
         for(unsigned int m=0; m<associated.size(); m++){
-                printf("Associated collection=> Particle: %10i Pt: %10.5f \n", associated.at(m).first, associated.at(m).second.Pt());
+                printf("Associated collection=> Particle: %5i Pt: %10.5f Eta: %6.3f \n", associated.at(m).first, associated.at(m).second.Pt(), associated.at(m).second.Eta());
         }
-        printf(" \n");
+        printf(" \n");*/
 	std::sort( associated.begin(), associated.end(), utils::sort_CandidatesByPt_V2);
-        for(unsigned int m=0; m<associated.size(); m++){
+        /*for(unsigned int m=0; m<associated.size(); m++){
                 printf("Associated collection post Soterd function=> Particle: %10i Pt: %10.5f \n", associated.at(m).first, associated.at(m).second.Pt());
-        }
+        }*/
         printf(" \n");	
 
         mela.setCandidateDecayMode(TVar::CandidateDecay_ZZ); //Mela Candidate mode initialized
@@ -810,11 +810,11 @@ namespace higgs{
         //if(!isVBF) kF=Get_NNLO_kFactors(Higgs.M());
 
 	cps_weight=Get_CPS_weights( Higgs.M(), heavyMass);
-
-        //printf("Mela Weight BSM: %20.18f Mela Weigth SM: %20.18f Continuum Weigth: %20.18f \n", weightMELA, weightSM, continuum_weight);
+ 
 	mela.resetInputEvent();
         finalweight=(weightMELA/weightSM)*cps_weight*continuum_weight;
 
+        //printf("Mela Weight BSM: %20.18f Mela Weigth SM: %20.18f Continuum Weigth: %20.18f CPS: %20.18f \n", weightMELA, weightSM, continuum_weight, cps_weight);
         return finalweight;
 
     }
@@ -826,61 +826,61 @@ namespace higgs{
         std::map< double, std::map<double,double> > cpWeight_MapggH;
 
 	//Filling ContinuumWeights GGH
-	cpWeight_MapggH[1.0][200] = 1.0; //0.0174916426606125; 
-	cpWeight_MapggH[1.0][300] = 1.0; //0.151788185833618; 
-	cpWeight_MapggH[1.0][400] = 1.0; //0.133535059751491; 
-	cpWeight_MapggH[1.0][500] = 1.0; //0.0635195783662186;	
-	cpWeight_MapggH[1.0][600] = 1.0; //0.0294003411175982;
-	cpWeight_MapggH[1.0][700] = 1.0; //0.0134870105407229;
-	cpWeight_MapggH[1.0][800] = 1.0; //0.00714088114955624;
-	cpWeight_MapggH[1.0][900] = 1.0; //0.00310337236376096;	
-	cpWeight_MapggH[1.0][1000] = 1.0; //0.00149478972041437;
-	cpWeight_MapggH[1.0][1500] = 1.0; //0.00020851824925088;
-	cpWeight_MapggH[1.0][2000] = 1.0;
-	cpWeight_MapggH[1.0][2500] = 1.0;
-	cpWeight_MapggH[1.0][3000] = 1.0;
+	cpWeight_MapggH[1.0][200] = 0.0158774643633078812; 
+	cpWeight_MapggH[1.0][300] = 0.1422167594760576637;
+	cpWeight_MapggH[1.0][400] = 0.1110706918314564723;
+	cpWeight_MapggH[1.0][500] = 0.0496349573541513683;
+	cpWeight_MapggH[1.0][600] = 0.0243360102362665219;
+	cpWeight_MapggH[1.0][700] = 0.0097264285619322165;
+	cpWeight_MapggH[1.0][800] = 0.0048235240496451327;
+	cpWeight_MapggH[1.0][900] = 0.0016106532055212704;
+	cpWeight_MapggH[1.0][1000] = 0.0007724373800297572;
+	cpWeight_MapggH[1.0][1500] = 0.0001305297190794587;
+	cpWeight_MapggH[1.0][2000] = 0.0001305297190794587;
+	cpWeight_MapggH[1.0][2500] = 0.0000099553306220403;
+	cpWeight_MapggH[1.0][3000] = 0.0000054994821059563;
 
-        cpWeight_MapggH[0.6][200] = 1.0;
-        cpWeight_MapggH[0.6][300] = 1.0;
-        cpWeight_MapggH[0.6][400] = 1.0;
-        cpWeight_MapggH[0.6][500] = 1.0;
-        cpWeight_MapggH[0.6][600] = 1.0;
-        cpWeight_MapggH[0.6][700] = 1.0;
-        cpWeight_MapggH[0.6][800] = 1.0;
-        cpWeight_MapggH[0.6][900] = 1.0;
-        cpWeight_MapggH[0.6][1000] = 1.0;
-        cpWeight_MapggH[0.6][1500] = 1.0;
-        cpWeight_MapggH[0.6][2000] = 1.0;
-        cpWeight_MapggH[0.6][2500] = 1.0;
-        cpWeight_MapggH[0.6][3000] = 1.0;
+        cpWeight_MapggH[0.6][200] = 0.0158774643633078812; 
+        cpWeight_MapggH[0.6][300] = 0.1422167594760576637;
+        cpWeight_MapggH[0.6][400] = 0.1110706918314564723;
+        cpWeight_MapggH[0.6][500] = 0.0496349573541513683;
+        cpWeight_MapggH[0.6][600] = 0.0243360102362665219;
+        cpWeight_MapggH[0.6][700] = 0.0097264285619322165;
+        cpWeight_MapggH[0.6][800] = 0.0048235240496451327;
+        cpWeight_MapggH[0.6][900] = 0.0016106532055212704;
+        cpWeight_MapggH[0.6][1000] = 0.0007724373800297572;
+        cpWeight_MapggH[0.6][1500] = 0.0001305297190794587;
+        cpWeight_MapggH[0.6][2000] = 0.0000408866815835500;
+        cpWeight_MapggH[0.6][2500] = 0.0000099553306220403;
+        cpWeight_MapggH[0.6][3000] = 0.0000054994821059563;
 
-        cpWeight_MapggH[0.3][200] = 1.0;
-        cpWeight_MapggH[0.3][300] = 1.0;
-        cpWeight_MapggH[0.3][400] = 1.0;
-        cpWeight_MapggH[0.3][500] = 1.0;
-        cpWeight_MapggH[0.3][600] = 1.0;
-        cpWeight_MapggH[0.3][700] = 1.0;
-        cpWeight_MapggH[0.3][800] = 1.0;
-        cpWeight_MapggH[0.3][900] = 1.0;
-        cpWeight_MapggH[0.3][1000] = 1.0;
-        cpWeight_MapggH[0.3][1500] = 1.0;
-        cpWeight_MapggH[0.3][2000] = 1.0;
-        cpWeight_MapggH[0.3][2500] = 1.0;
-        cpWeight_MapggH[0.3][3000] = 1.0;
+        cpWeight_MapggH[0.3][200] = 0.0158774643633078812;
+        cpWeight_MapggH[0.3][300] = 0.1422167594760576637;
+        cpWeight_MapggH[0.3][400] = 0.1110706918314564723;
+        cpWeight_MapggH[0.3][500] = 0.0496349573541513683;
+        cpWeight_MapggH[0.3][600] = 0.0243360102362665219;
+        cpWeight_MapggH[0.3][700] = 0.0097264285619322165;
+        cpWeight_MapggH[0.3][800] = 0.0048235240496451327;
+        cpWeight_MapggH[0.3][900] = 0.0016106532055212704;
+        cpWeight_MapggH[0.3][1000] = 0.0007724373800297572;
+        cpWeight_MapggH[0.3][1500] = 0.0001305297190794587;
+        cpWeight_MapggH[0.3][2000] = 0.0000408866815835500;
+        cpWeight_MapggH[0.3][2500] = 0.0000099553306220403;
+        cpWeight_MapggH[0.3][3000] = 0.0000054994821059563;
 
-        cpWeight_MapggH[0.1][200] = 1.0;
-        cpWeight_MapggH[0.1][300] = 1.0;
-        cpWeight_MapggH[0.1][400] = 1.0;
-        cpWeight_MapggH[0.1][500] = 1.0;
-        cpWeight_MapggH[0.1][600] = 1.0;
-        cpWeight_MapggH[0.1][700] = 1.0;
-        cpWeight_MapggH[0.1][800] = 1.0;
-        cpWeight_MapggH[0.1][900] = 1.0;
-        cpWeight_MapggH[0.1][1000] = 1.0;
-        cpWeight_MapggH[0.1][1500] = 1.0;
-        cpWeight_MapggH[0.1][2000] = 1.0;
-        cpWeight_MapggH[0.1][2500] = 1.0;
-        cpWeight_MapggH[0.1][3000] = 1.0;
+        cpWeight_MapggH[0.1][200] = 0.0158774643633078812;
+        cpWeight_MapggH[0.1][300] = 0.1422167594760576637;
+        cpWeight_MapggH[0.1][400] = 0.1110706918314564723;
+        cpWeight_MapggH[0.1][500] = 0.0496349573541513683;
+        cpWeight_MapggH[0.1][600] = 0.0243360102362665219;
+        cpWeight_MapggH[0.1][700] = 0.0097264285619322165;
+        cpWeight_MapggH[0.1][800] = 0.0048235240496451327;
+        cpWeight_MapggH[0.1][900] = 0.0016106532055212704;
+        cpWeight_MapggH[0.1][1000] = 0.0007724373800297572;
+        cpWeight_MapggH[0.1][1500] = 0.0001305297190794587;
+        cpWeight_MapggH[0.1][2000] = 0.0000408866815835500;
+        cpWeight_MapggH[0.1][2500] = 0.0000099553306220403;
+        cpWeight_MapggH[0.1][3000] = 0.0000054994821059563;
 
 	//Filling ContinuumWeights VBF
         cpWeight_MapVBF[1.0][200] = 1; 
