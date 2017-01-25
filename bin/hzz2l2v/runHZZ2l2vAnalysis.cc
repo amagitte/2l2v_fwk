@@ -1754,7 +1754,12 @@ int main(int argc, char* argv[])
                        for(unsigned int nri=0;nri<NRparams.size();nri++){
                           
 			  //Higgs line shape
-                          float shapeWeight = weight;   //used for shape dependent weights (avoid overwritting chWeights)
+                          float shapeWeight = 1;   //used for shape dependent weights (avoid overwritting chWeights)
+			  if( isMELA ){
+				shapeWeight = (weight*lMelaShapeWeights[nri][MelaMode])/lMelaShapeWeights[0][MelaMode];
+			  } else if( !isMELA ){
+				shapeWeight =  weight;
+			  }
 
 			  if( !isMELA ){
                              double weightToOtherNRI = ( (lShapeWeights[nri][0] * lShapeWeights[nri][1]) / (lShapeWeights[0][0] * lShapeWeights[0][1]) );  //remove weights form nri=0 as those are already in the nominal weight and apply the one for NRI!=0;
@@ -1789,8 +1794,14 @@ int main(int argc, char* argv[])
                        for(unsigned int nri=0;nri<NRparams.size();nri++){
 
                           //Higgs line shape
-                          float shapeWeight = weight;   //used for shape dependent weights (avoid overwritting chWeights)
-                          
+                          float shapeWeight = 1; //used for shape dependent weights (avoid overwritting chWeights)
+
+                          if( isMELA ){
+                                shapeWeight = (weight*lMelaShapeWeights[nri][MelaMode])/lMelaShapeWeights[0][MelaMode];
+                          } else if( !isMELA ){
+                                shapeWeight =  weight;
+                          }                         
+ 
 			  if( !isMELA ){
 			     double weightToOtherNRI = ( (lShapeWeights[nri][0] * lShapeWeights[nri][1]) / (lShapeWeights[0][0] * lShapeWeights[0][1]) );  //remove weights form nri=0 as those are already in the nominal weight and apply the one for NRI!=0;
                              if(!std::isnan((double)weightToOtherNRI))shapeWeight *= weightToOtherNRI; 
