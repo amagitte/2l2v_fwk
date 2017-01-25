@@ -197,7 +197,7 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
 
   //limits in terms of signal strength
   TCanvas* c = new TCanvas("c", "c",800,800);
-  TH1F* framework = new TH1F("Graph","Graph",1,strengthLimit?199:199,2500);
+  TH1F* framework = new TH1F("Graph","Graph",1,strengthLimit?199:199,3000);
   framework->SetStats(false);
   framework->SetTitle("");
   framework->GetXaxis()->SetTitle("M_{H} [GeV]");

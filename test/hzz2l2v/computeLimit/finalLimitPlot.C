@@ -351,7 +351,7 @@ void finalLimitPlot(){
 
          c1 = new TCanvas("c", "c",600,600);
          c1->SetLogy(true);
-         framework = new TH1F("Graph","Graph",1,190,2500);
+         framework = new TH1F("Graph","Graph",1,190,3000);
          framework->SetStats(false);
          framework->SetTitle("");
          framework->GetXaxis()->SetTitle("M_{H} [GeV]");
