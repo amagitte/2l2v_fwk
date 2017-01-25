@@ -596,6 +596,7 @@ namespace higgs{
 	SM_Info[500]=68;    SM_Info[600]=123;   SM_Info[700]=199;
 	SM_Info[800]=304;   SM_Info[900]=499;   SM_Info[1000]=647;
 	SM_Info[1500]=1500; SM_Info[2000]=2000; SM_Info[2500]=2500;
+	SM_Info[3000]=3000;
 
 	heavyWidth=SM_Info[heavyMass];
 
