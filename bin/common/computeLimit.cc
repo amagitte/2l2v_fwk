@@ -1771,12 +1771,12 @@ int main(int argc, char* argv[])
                     //if(it->second.shortName.find("ggH")!=string::npos && chbin.Contains("vbf"    )){shapeInfo.uncScale["UEPS"] = integral*(1.0-TG_UEPSf2->Eval(mass,NULL,"S"));}
 
                     //bin migration at th level
-                    if(it->second.shortName.find("ggH")!=string::npos && chbin.Contains("eq0jet" )){shapeInfo.uncScale["QCDscale_ggH"]    = integral*(TG_QCDScaleK0ggH0->Eval(mass,NULL,"S")-1);}
+                    /*if(it->second.shortName.find("ggH")!=string::npos && chbin.Contains("eq0jet" )){shapeInfo.uncScale["QCDscale_ggH"]    = integral*(TG_QCDScaleK0ggH0->Eval(mass,NULL,"S")-1);}
                     if(it->second.shortName.find("ggH")!=string::npos && chbin.Contains("eq0jet" )){shapeInfo.uncScale["QCDscale_ggH1in"] = integral*(TG_QCDScaleK0ggH1->Eval(mass,NULL,"S")-1);}
                     if(it->second.shortName.find("ggH")!=string::npos && chbin.Contains("eq1jet" )){shapeInfo.uncScale["QCDscale_ggH1in"] = integral*(TG_QCDScaleK1ggH1->Eval(mass,NULL,"S")-1);}
                     if(it->second.shortName.find("ggH")!=string::npos && chbin.Contains("eq1jet" )){shapeInfo.uncScale["QCDscale_ggH2in"] = integral*(TG_QCDScaleK1ggH2->Eval(mass,NULL,"S")-1);}
                     if(it->second.shortName.find("ggH")!=string::npos && chbin.Contains("eq2jet" )){shapeInfo.uncScale["QCDscale_ggH2in"] = integral*(TG_QCDScaleK2ggH2->Eval(mass,NULL,"S")-1);}
-                    if(it->second.shortName.find("ggH")!=string::npos && chbin.Contains("vbf"    )){shapeInfo.uncScale["QCDscale_ggH2in"] = integral*(TG_QCDScaleK2ggH2->Eval(mass,NULL,"S")-1);}
+                    if(it->second.shortName.find("ggH")!=string::npos && chbin.Contains("vbf"    )){shapeInfo.uncScale["QCDscale_ggH2in"] = integral*(TG_QCDScaleK2ggH2->Eval(mass,NULL,"S")-1);}*/
                  }//end of uncertainties to be applied only in higgs analyses
 
                  //if(it->second.shortName.find("ww")==0){shapeInfo.uncScale["XSec_sys_WW"] = integral*(systpostfix.Contains('8')?0.097:0.097);}
