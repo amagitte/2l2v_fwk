@@ -121,6 +121,11 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
   file->Close();
 
   
+  for(int i=0;i<ExpLimit->GetN();i++){
+     double M = ExpLimit->GetX()[i];
+     printf("Mass: %8.6E Expected: %8.6E \n",M, ExpLimit->Eval(M));
+  }
+  
   //get the pValue
   inputs = inputs.ReplaceAll("/LimitTree.root", "/PValueTree.root");
   file = TFile::Open(inputs);
@@ -159,8 +164,17 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
   
   strengthLimit = false;
   if(prod=="pp")strengthLimit=true;
- 
 
+  TGraph *XSecMELA = Hxswg::utils::getXSecMELA(cprime);
+
+  Hxswg::utils::multiplyGraph(   ObsLimit, XSecMELA);
+  Hxswg::utils::multiplyGraph( ExpLimitm2, XSecMELA);
+  Hxswg::utils::multiplyGraph( ExpLimitm1, XSecMELA);
+  Hxswg::utils::multiplyGraph(   ExpLimit, XSecMELA);
+  Hxswg::utils::multiplyGraph( ExpLimitp1, XSecMELA);
+  Hxswg::utils::multiplyGraph( ExpLimitp2, XSecMELA); 
+
+  //OldWay to compute the exclusion XSec
   scaleGraph(ObsLimit  , 1000); //pb to fb
   scaleGraph(ExpLimitm2, 1000); //pb to fb
   scaleGraph(ExpLimitm1, 1000); //pb to fb
@@ -168,8 +182,6 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
   scaleGraph(ExpLimitp1, 1000); //pb to fb
   scaleGraph(ExpLimitp2, 1000); //pb to fb
 
-
-  
   //scal eTH cross-section and limits according to scale factor 
   //this only apply to NarrowResonnance case
   if(strengthLimit){
@@ -185,7 +197,7 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
 
   //limits in terms of signal strength
   TCanvas* c = new TCanvas("c", "c",800,800);
-  TH1F* framework = new TH1F("Graph","Graph",1,strengthLimit?290:290,1010);
+  TH1F* framework = new TH1F("Graph","Graph",1,strengthLimit?199:199,2500);
   framework->SetStats(false);
   framework->SetTitle("");
   framework->GetXaxis()->SetTitle("M_{H} [GeV]");
@@ -195,7 +207,7 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
   framework->GetYaxis()->SetRangeUser(1E-4,1E3);
   c->SetLogy(true);
   }else{
-  framework->GetYaxis()->SetTitle((string("#sigma_{95%} (") + prod +" #rightarrow H #rightarrow ZZ) (fb)").c_str());
+  framework->GetYaxis()->SetTitle((string("#sigma_{95%} (") + prod +" #rightarrow H #rightarrow ZZ #rightarrow 2l2#nu) (fb)").c_str());
   framework->GetYaxis()->SetRangeUser(1,1E7);
   c->SetLogy(true);
   }
@@ -223,17 +235,17 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
   TGObsLimit->SetLineWidth(2);  TGObsLimit->SetMarkerStyle(20);
   TGExpLimit2S->Draw("fc same");
   TGExpLimit1S->Draw("fc same");
-  if(!blind) TGObsLimit->Draw("same CP");
+  //if(!blind) TGObsLimit->Draw("same CP");
   TGExpLimit->Draw("same C");
 
   
-  if(strengthLimit){
+  /*if(strengthLimit){
      TLine* SMLine = new TLine(framework->GetXaxis()->GetXmin(),1.0,framework->GetXaxis()->GetXmax(),1.0);
      SMLine->SetLineWidth(2); SMLine->SetLineStyle(1); SMLine->SetLineColor(4);      
      SMLine->Draw("same C");
   }else{
      THXSec->Draw("same C");
-  }
+  }*/
 
   utils::root::DrawPreliminary(luminosity, energy, c);
 
@@ -244,11 +256,11 @@ void plotLimit(string outputDir="./", TString inputs="", TString inputXSec="", b
   LEG->SetFillStyle(0);
   LEG->SetTextFont(42);
   LEG->SetBorderSize(0);
-  LEG->AddEntry(THXSec  , "Th prediction"  ,"L");
+  //LEG->AddEntry(THXSec  , "Th prediction"  ,"L");
   LEG->AddEntry(TGExpLimit  , "median expected"  ,"L");
   LEG->AddEntry(TGExpLimit1S  , "expected #pm 1#sigma"  ,"F");
   LEG->AddEntry(TGExpLimit2S  , "expected #pm 2#sigma"  ,"F");
-  if(!blind) LEG->AddEntry(TGObsLimit  , "observed"  ,"LP");
+  //if(!blind) LEG->AddEntry(TGObsLimit  , "observed"  ,"LP");
   LEG->Draw();
   c->RedrawAxis();
   c->SaveAs((outputDir+"Limit.png").c_str());

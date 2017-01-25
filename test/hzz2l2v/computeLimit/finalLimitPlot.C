@@ -115,7 +115,7 @@ TGraph* getGraph(string name, int color, int width, int style, TLegend* LEG, TGr
    int N=0;
    while(fscanf(pFile,"$%le$ & $%le$ & $[%le,%le]$ & $[%le,%le]$ & $%le$ & Th=$%le$ & pValue=$%le$\\\\\\hline\n",&mass, &exp, &explow1, &expup1, &explow2,&expup2,&obs, &th, &unused) != EOF){
 
-//      printf("%i %f - %f - %f\n",N,mass,exp, th);
+      printf("%i %f - %f - %f\n",N,mass,exp,obs);
 
       double value = exp;
       if(abs(type)==0) value = th;
@@ -159,21 +159,19 @@ TGraph** getGraphs(string name, int color, int width, TLegend* LEG, TGraph* Ref,
    return graphs;
 }
 
-
-TCutG* GetErrorBand(string name, int N, double* Mass, double* Low, double* High, double ymin=0.0, double ymax=1.0)
+TCutG* GetErrorBand(string name, TGraph* Low, TGraph* High)
 {
-   TCutG* cutg = new TCutG(name.c_str(),2*N+2);
+   TCutG* cutg = new TCutG(name.c_str(),Low->GetN()+High->GetN()+2);
    cutg->SetFillColor(kGreen-7);
    cutg->SetLineStyle(0);
    cutg->SetLineColor(0);
    int I = 0;
-   for(int i=0;i<N;i++){cutg->SetPoint(I,Mass[i]    , std::max(ymin,std::min(ymax,Low[i]     )));I++; }
-                        cutg->SetPoint(I,Mass[N-1]  , std::max(ymin,std::min(ymax,Low[N-1]   )));I++;
-                        cutg->SetPoint(I,Mass[N-1]  , std::max(ymin,std::min(ymax,High[N-1]  )));I++;
-   for(int i=0;i<N;i++){cutg->SetPoint(I,Mass[N-1-i], std::max(ymin,std::min(ymax,High[N-1-i])));I++;}
+   for(int i=0;i<Low->GetN();i++){  cutg->SetPoint(I,Low ->GetX()[i]               , Low ->GetY()[i]               );I++; }
+                                    cutg->SetPoint(I,Low ->GetX()[Low ->GetN()-1]  , Low ->GetY()[Low ->GetN()-1]  );I++;
+                                    cutg->SetPoint(I,High->GetX()[High->GetN()-1]  , High->GetY()[High->GetN()-1]  );I++;
+   for(int i=0;i<High->GetN() ;i++){cutg->SetPoint(I,High->GetX()[High->GetN()-1-i], High->GetY()[High->GetN()-1-i]);I++;}
    return cutg;
 }
-
 
 TGraph* getContour(TH2D* inputHisto, TCanvas* goodCanvas, int Width, int Style, int Color){
 	TCanvas* c1 = new TCanvas("temp", "temp",600,600);
@@ -261,20 +259,20 @@ void finalLimitPlot(){
    std::map<int, int> colorMap;
    colorMap[mapIndex(1.0, 0.0)] = 1;
    colorMap[mapIndex(0.9, 0.0)] = 1;
-   colorMap[mapIndex(0.8, 0.0)] = 6;
-   colorMap[mapIndex(0.7, 0.0)] = 6;
-   colorMap[mapIndex(0.6, 0.0)] = 4;
-   colorMap[mapIndex(0.5, 0.0)] = 4;
-   colorMap[mapIndex(0.4, 0.0)] = 3;
-   colorMap[mapIndex(0.3, 0.0)] = 3;
+   colorMap[mapIndex(0.8, 0.0)] = 617;
+   colorMap[mapIndex(0.7, 0.0)] = 617;
+   colorMap[mapIndex(0.6, 0.0)] = 6;
+   colorMap[mapIndex(0.5, 0.0)] = 6;
+   colorMap[mapIndex(0.4, 0.0)] = 4;
+   colorMap[mapIndex(0.3, 0.0)] = 4;
    colorMap[mapIndex(0.2, 0.0)] = 2;
    colorMap[mapIndex(0.1, 0.0)] = 2;
 
-   std::vector<double> CPs = {1.0,0.6,0.3,0.1,0.0};
+   std::vector<double> CPs = {0.3,0.6,1.0};
    std::vector<double> BRs = {0.0};
 
   //LIMIT ON SIGNAL STRENGTH
-   string Directories2[]={"cards_SB13TeV", "cards_SB13TeV_GGF", "cards_SB13TeV_VBF"};  //DEBUG
+   string Directories2[]={"cards_SB13TeV_SM", "cards_SB13TeV_SM_GGF", "cards_SB13TeV_SM_VBF"};  //DEBUG
    for(unsigned int D=0;D<sizeof(Directories2)/sizeof(string);D++){
       string Dir     = Directories2[D];
       char tmp[1024];sprintf(tmp, "%s_cp%4.2f_brn%4.2f/", Dir.c_str(), 1.0, 0.0);
@@ -353,16 +351,16 @@ void finalLimitPlot(){
 
          c1 = new TCanvas("c", "c",600,600);
          c1->SetLogy(true);
-         framework = new TH1F("Graph","Graph",1,190,1510);
+         framework = new TH1F("Graph","Graph",1,190,2500);
          framework->SetStats(false);
          framework->SetTitle("");
          framework->GetXaxis()->SetTitle("M_{H} [GeV]");
          if(strengthLimit){
             framework->GetYaxis()->SetTitle("#mu = #sigma_{95%} / #sigma_{th}");
-            framework->GetYaxis()->SetRangeUser(1E-2,1E3);
+            framework->GetYaxis()->SetRangeUser(1E1,1E7);
          }else{
-            framework->GetYaxis()->SetTitle((string("#sigma_{95%} (") + prod +" #rightarrow H #rightarrow ZZ) (fb)").c_str());
-            framework->GetYaxis()->SetRangeUser(1E1,1E5);
+            framework->GetYaxis()->SetTitle((string("#sigma_{95%} (") + prod +" #rightarrow H #rightarrow ZZ #rightarrow 2l2#nu) (fb)").c_str());
+            framework->GetYaxis()->SetRangeUser(1E0,1E7);
          }
          framework->GetYaxis()->SetTitleOffset(1.40);
          framework->Draw();
@@ -374,13 +372,13 @@ void finalLimitPlot(){
          }
 
 
-         LEG = new TLegend(0.70,0.70,0.85,0.94);
+         LEG = new TLegend(0.40,0.69,0.57,0.94);
          LEG->SetTextFont(43); LEG->SetTextSize(15);   LEG->SetTextAlign(12);
          LEG->SetHeader("Observed");
          LEG->SetFillStyle(0);
          LEG->SetBorderSize(0);
 
-         TLegend* LEGExp = new TLegend(0.55,0.70,0.70,0.94);
+         TLegend* LEGExp = new TLegend(0.55,0.59,0.70,0.939);
          LEGExp->SetTextFont(43); LEGExp->SetTextSize(15);   LEGExp->SetTextAlign(12);         
          LEGExp->SetHeader("Expected");
          LEGExp->SetFillStyle(0);
@@ -395,7 +393,21 @@ void finalLimitPlot(){
             LEGTh->SetBorderSize(0);
          }
         
-        
+
+	 //Defined the band uncertanties coming from Cp=1.0
+	 char filePath[1024]; sprintf(filePath, "%s_cp%4.2f_brn%4.2f/Stength_LimitSummary", Dir.c_str(), 1.0, 0.0);
+         char nameBuf[255];sprintf(nameBuf,"%s_%i","1",0);
+	 TGraph* ExpLimitm1=getGraph(nameBuf, 2, 1, 1, NULL, NULL, 3, filePath);
+	 TGraph* ExpLimitp1=getGraph(nameBuf, 2, 1, 1, NULL, NULL, 4, filePath);
+	 TGraph* ExpLimitm2=getGraph(nameBuf, 4, 1, 1, NULL, NULL, 5, filePath);
+	 TGraph* ExpLimitp2=getGraph(nameBuf, 4, 1, 1, NULL, NULL, 6, filePath);
+
+  	 TCutG* TGExpLimit1S  = GetErrorBand("1S", ExpLimitm1, ExpLimitp1);
+  	 TCutG* TGExpLimit2S  = GetErrorBand("2S", ExpLimitm2, ExpLimitp2);  TGExpLimit2S->SetFillColor(5);       
+
+         TGExpLimit2S->Draw("fc same");
+         TGExpLimit1S->Draw("fc same");
+ 
          for(unsigned int CPi = 0; CPi<CPs.size();CPi++){
          for(unsigned int BRi = 0; BRi<BRs.size();BRi++){
             double CP = CPs[CPi];  double BR = BRs[BRi]; 
@@ -407,36 +419,42 @@ void finalLimitPlot(){
             TGraph* g = (gCPBR[ mapIndex(CP, BR) ])[1+1];
             if(!g) continue;
             g->SetLineStyle(1);
-            g->Draw("C same");
-            LEG->AddEntry(g, g->GetTitle(), "L");            
+	    g->SetLineWidth(3);
+            //g->Draw("C same");
+            //LEG->AddEntry(g, g->GetTitle(), "L");            
 
 
             TGraph* gExp = (gCPBR[ mapIndex(CP, BR) ])[1];
             if(!gExp) continue;
             gExp->SetLineStyle(2);
+	    gExp->SetLineWidth(3);
             gExp->Draw("C same");
             LEGExp->AddEntry(gExp, g->GetTitle(), "L");            
 
 
-           if(!strengthLimit){
+           /*if(!strengthLimit){
               TGraph* THXSec = (gCPBR[ mapIndex(CP, BR) ])[0];
                 THXSec->SetLineStyle(3);  THXSec->SetLineWidth(1);  THXSec->SetLineColor(g->GetLineColor());
                 THXSec->Draw("same C");
                 LEGTh->AddEntry(THXSec, g->GetTitle(), "L");
-           }
+           }*/
          }}
-         LEG  ->Draw("same");
+
+	 LEGExp->AddEntry( TGExpLimit1S, "expected #pm 1#sigma C'=1.0", "F");
+	 LEGExp->AddEntry( TGExpLimit2S, "expected #pm 2#sigma C'=1.0", "F");
+
+         //LEG  ->Draw("same");
          LEGExp  ->Draw("same");
-         if(LEGTh)LEGTh  ->Draw("same");
+         //if(LEGTh)LEGTh  ->Draw("same");
 
 
-         utils::root::DrawPreliminary(2268.759, 13, gPad->GetLeftMargin(),gPad->GetBottomMargin(),gPad->GetRightMargin(),gPad->GetTopMargin()+0.03);
+         utils::root::DrawPreliminary( 36814.143, 13, gPad->GetLeftMargin(),gPad->GetBottomMargin(),gPad->GetRightMargin(),gPad->GetTopMargin()+0.03);
 //         if(observed==0){
 
-            gPad->RedrawAxis();
-            c1->SaveAs((SaveDir+"/Stength_FinalPlot.png").c_str());
-            c1->SaveAs((SaveDir+"/Stength_FinalPlot.pdf").c_str());
-            c1->SaveAs((SaveDir+"/Stength_FinalPlot.C"  ).c_str());
+         gPad->RedrawAxis();
+         c1->SaveAs((SaveDir+"/Stength_FinalPlot.png").c_str());
+         c1->SaveAs((SaveDir+"/Stength_FinalPlot.pdf").c_str());
+         c1->SaveAs((SaveDir+"/Stength_FinalPlot.C"  ).c_str());
 //         }else{
 //            c1->SaveAs((SaveDir+"/Stength_FinalPlot_Obs.png").c_str());
 //            c1->SaveAs((SaveDir+"/Stength_FinalPlot_Obs.pdf").c_str());
@@ -446,7 +464,7 @@ void finalLimitPlot(){
       ///////////////////////////////////////////////
      //Mass Versus Cprime limits  2D
      ///////////////////////////////////////////////
-     for(int mode=0; mode<=1; mode++){
+     /*for(int mode=0; mode<=1; mode++){
      //mode=0 --> Mass versus C'     interpolated from 2D limit(CPrime, BRNew)
      //mode=1 --> Mass versus Gamma  interpolated from 2D limit(CPrime, BRNew)
      
@@ -557,14 +575,14 @@ void finalLimitPlot(){
             c1->SaveAs((SaveDir+"/Stength_FinalPlot2D_"+massStr+".C").c_str());
          }//end of observed loop
 
-      }//end of mode loop
+      }*///end of mode loop
 
 
       ///////////////////////////////////////////////
      //Limits on 2HDM
      ///////////////////////////////////////////////
 
-      if(prod=="gg"){
+      /*if(prod=="gg"){
          TH2D* grid   = new TH2D("grid2HDM"  , "grid"  , 650, 200, 1500, 1000, 0.5, 60);         
          for(int type=1;type<=2;type++){
              for(double cosBmA=0.1; cosBmA<=0.1; cosBmA+=0.1){
@@ -676,7 +694,7 @@ void finalLimitPlot(){
              }//end of limit type
            }//end of cos loop
          }//end of type loop
-      }//gg production
+      }*///gg production
 
 
 
